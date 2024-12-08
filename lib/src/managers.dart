@@ -3,7 +3,8 @@ import 'entity.dart';
 
 /// ComponentManager: manages components of different types
 class ComponentManager {
-  final Map<Type, Map<Entity, Component>> _componentsByType = {};
+  final Map<Type, Map<Entity, Component>> _componentsByType =
+      <Type, Map<Entity, Component>>{};
 
   /// Add a component to an entity
   void addComponent<T extends Component>(Entity entity, T component) {
@@ -26,14 +27,17 @@ class ComponentManager {
   /// Get all entities with a specific component type
   Iterable<Entity> getEntitiesWithComponent<T extends Component>() {
     final components = _componentsByType[T];
-    return components?.keys ?? const Iterable.empty();
+    return components?.keys ?? const Iterable<Entity>.empty();
   }
 }
 
 /// EntityManager: manages entities
 class EntityManager {
   int _nextId = 0;
-  final Set<Entity> _entities = {};
+  final Set<Entity> _entities = <Entity>{};
+
+  /// Get all entities
+  Iterable<Entity> get entities => _entities;
 
   /// Create a new entity
   Entity createEntity() {
@@ -50,7 +54,4 @@ class EntityManager {
       components._componentsByType[type]?.remove(entity);
     }
   }
-
-  /// Get all entities
-  Iterable<Entity> get entities => _entities;
 }

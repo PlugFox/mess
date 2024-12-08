@@ -1,3 +1,5 @@
+// ignore_for_file: one_member_abstracts
+
 import 'managers.dart';
 
 /// System base class

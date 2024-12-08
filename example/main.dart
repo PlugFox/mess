@@ -1,5 +1,5 @@
 // --- Example Components ---
-// ignore_for_file: cascade_invocations
+// ignore_for_file: cascade_invocations, avoid_print
 
 import 'package:mess/mess.dart';
 
@@ -13,7 +13,8 @@ class Velocity implements Component {
   double dx, dy;
 }
 
-// --- Example System ---
+// --- Example System --- //
+
 class MovementSystem implements System {
   @override
   void update(ComponentManager components) {
@@ -30,7 +31,8 @@ class MovementSystem implements System {
   }
 }
 
-// --- Main Program ---
+// --- Main program --- //
+
 void main() {
   final world = World();
 
