@@ -4,7 +4,7 @@ description: >
   designed to manage large-scale entities and their states.
   MESS enables developers to build complex systems with a clear architecture, ensuring high performance and scalability.
 
-version: 0.0.1
+version: 0.0.1-pre.1
 
 homepage: https://github.com/PlugFox/mess
 
