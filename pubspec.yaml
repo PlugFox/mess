@@ -18,11 +18,11 @@ funding:
   - https://boosty.to/plugfox
 
 topics:
-  - ECS
-  - Entity-Component-System
-  - State Management
-  - Game Development
-  - Mass Entity State System
+  - ecs
+  - entity-component-system
+  - state-management
+  - game-development
+  - mass-entity-state-system
 
 platforms:
   android:
