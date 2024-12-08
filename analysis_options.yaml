@@ -1,11 +1,7 @@
-include: package:flutter_lints/flutter.yaml
+include: package:lints/recommended.yaml
 
 analyzer:
   exclude:
-    # Build
-    - "build/**"
-    # Codegen
-    - "lib/**.g.dart"
     # Tests
     - "test/**.mocks.dart"
     - ".test_coverage.dart"

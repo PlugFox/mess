@@ -6,21 +6,6 @@ on:
     branches:
       - "main"
       - "master"
-      #- "dev"
-      #- "develop"
-      #- "feature/**"
-      #- "bugfix/**"
-      #- "hotfix/**"
-      #- "support/**"
-  #  paths:
-  #    - "pubspec.yaml"
-  #    - "pubspec.lock"
-  #    - ".github/**.yaml"
-  #    - ".github/**.yml"
-  #    - "lib/**.dart"
-  #    - "test/**.dart"
-  #    - "packages/**"
-  #    - "example/**.dart"
   pull_request:
     branches:
       - "main"
@@ -52,6 +37,8 @@ jobs:
   checkout:
     name: "🧪 Check code with analysis, format, and tests"
     runs-on: ubuntu-latest
+    env:
+      threshold: 10
     defaults:
       run:
         working-directory: ./
@@ -63,15 +50,15 @@ jobs:
           sparse-checkout: |
             .github
 
-      - name: 🚂 Setup Flutter and dependencies
+      - name: 🚂 Setup Dart and dependencies
         uses: ./.github/actions/setup
         with:
-          flutter-version: 3.24.3
+          dart-version: 'stable'
 
       - name: 👷 Install Dependencies
         timeout-minutes: 1
         run: |
-          flutter pub get
+          dart pub get
 
       - name: 🚦 Check code format
         id: check-format
@@ -82,7 +69,7 @@ jobs:
       - name: 📈 Check analyzer
         id: check-analyzer
         timeout-minutes: 1
-        run: flutter analyze --fatal-infos --fatal-warnings lib/ test/
+        run: dart analyze --fatal-infos --fatal-warnings lib/ test/
 
       - name: 👀 Verify versions
         id: verify-versions
@@ -95,18 +82,47 @@ jobs:
           echo "$version_pubspec" > /tmp/version_pubspec
           grep -q "# $version_pubspec" CHANGELOG.md || (echo "Version not found in CHANGELOG.md" >&2; exit 1)
 
-      - name: 🧪 Unit & Widget tests
-        timeout-minutes: 20
+      - name: 🧪 Run tests
+        timeout-minutes: 5
         run: |
-          flutter test --coverage --concurrency=40 test/unit_test.dart test/widget_test.dart
+          dart pub global activate coverage
+          dart pub global run coverage:test_with_coverage -fb -o coverage -- \
+            --platform=vm --compiler=kernel --coverage=coverage \
+            --reporter=github --file-reporter=json:reports/tests.json \
+            --timeout=10m --concurrency=12 --color \
+              test/unit_test.dart
 
-      #- name: 📥 Upload coverage report
-      #  timeout-minutes: 5
-      #  if: ${{ github.actor != 'dependabot[bot]' }}
-      #  uses: codecov/codecov-action@v2
+      - name: 🎁 Setup LCOV
+        timeout-minutes: 1
+        uses: hrishikesh-kadam/setup-lcov@v1
+
+      - name: 🔍 Check coverage
+        id: check-coverage
+        timeout-minutes: 1
+        run: |
+          lcov --list coverage/lcov.info
+          THRESHOLD=${{ env.threshold }}
+          COVERAGE=$(lcov --summary coverage/lcov.info | grep -i 'lines\|Total:' | tail -n 1 | awk '{print $2}' | sed 's/%//')
+          echo "Coverage is $COVERAGE%"
+          echo $COVERAGE | awk '{if ($1 < 50) exit 1}'
+
+      #- name: 🔍 Report code coverage
+      #  uses: zgosalvez/github-actions-report-lcov@v4
       #  with:
-      #    token: ${{ secrets.CODECOV_TOKEN }}
-      #    files: ./coverage/lcov.info
+      #    coverage-files: coverage/lcov.info
+      #    minimum-coverage: ${{ env.threshold }}
+      #    artifact-name: code-coverage-report
+      #    github-token: ${{ secrets.GITHUB_TOKEN }}
+      #    working-directory: ./
+      #    update-comment: true
+
+      - name: 📥 Upload coverage report
+        timeout-minutes: 5
+        if: ${{ github.actor != 'dependabot[bot]' }}
+        uses: codecov/codecov-action@v2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
 
       - name: 📥 Upload test report
         uses: actions/upload-artifact@v4

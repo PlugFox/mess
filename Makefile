@@ -27,41 +27,50 @@ format: ## Format the code
 
 .PHONY: get
 get: ## Get the dependencies
-	@flutter pub get
+	@dart pub get
 
 .PHONY: outdated
 outdated: get ## Check for outdated dependencies
-	@flutter pub outdated --show-all --dev-dependencies --dependency-overrides --transitive --no-prereleases
+	@dart pub outdated --show-all --dev-dependencies --dependency-overrides --transitive --no-prereleases
 
 .PHONY: test
 test: get ## Run the tests
-	@flutter test --concurrency=40 test/unit_test.dart test/widget_test.dart
+	@dart test --debug --coverage=coverage --platform vm,chrome test/l_test.dart
 
 .PHONY: publish-check
 publish-check: ## Check the package before publishing
-	@flutter pub publish --dry-run
+	@dart pub publish --dry-run
 
 .PHONY: deploy-check
 deploy-check: publish-check
 
 .PHONY: publish
 publish: ## Publish the package
-	@flutter pub publish
+	@dart pub publish
 
 .PHONY: deploy
 deploy: publish
 
 .PHONY: coverage
 coverage: get ## Generate the coverage report
-	@flutter test --coverage --concurrency=40 test/unit_test.dart test/widget_test.dart
-#	@lcov --remove coverage/lcov.info 'lib/**/*.g.dart' -o coverage/lcov.info
+	@dart pub global activate coverage
+	@dart pub global run coverage:test_with_coverage -fb -o coverage -- \
+		--platform=vm,chrome --compiler=kernel --coverage=coverage \
+		--reporter=expanded --file-reporter=json:coverage/tests.json \
+		--timeout=10m --concurrency=12 --color \
+			test/l_test.dart
+#	@dart test --concurrency=6 --platform vm --coverage=coverage test/
+#	@dart run coverage:format_coverage --lcov --in=coverage --out=coverage/lcov.info --report-on=lib
+#	@mv coverage/lcov.info coverage/lcov.base.info
+#	@lcov -r coverage/lcov.base.info -o coverage/lcov.base.info "lib/src/protobuf/client.*.dart" "lib/**/*.g.dart"
+#	@mv coverage/lcov.base.info coverage/lcov.info
 	@lcov --list coverage/lcov.info
 	@genhtml -o coverage coverage/lcov.info
 
 .PHONY: analyze
 analyze: get ## Analyze the code
 	@dart format --set-exit-if-changed -l 80 -o none lib/ test/
-	@flutter analyze --fatal-infos --fatal-warnings lib/ test/
+	@dart analyze --fatal-infos --fatal-warnings lib/ test/
 
 .PHONY: check
 check: analyze publish-check ## Check the code
@@ -71,23 +80,10 @@ check: analyze publish-check ## Check the code
 .PHONY: pana
 pana: check
 
-#.PHONY: generate
-#generate: get ## Generate the code
-#	@dart pub global activate protoc_plugin
-#	@protoc --proto_path=lib/src/protobuf --dart_out=lib/src/protobuf lib/src/protobuf/client.proto
-#	@dart run build_runner build --delete-conflicting-outputs
-#	@dart format -l 80 lib/src/model/pubspec.yaml.g.dart lib/src/protobuf/ test/
-
-#.PHONY: gen
-#gen: generate
-
-#.PHONY: codegen
-#codegen: generate
-
-.PHONY: version
-version: ## Show the Flutter version
-	@flutter --version
-	@which flutter
+.PHONY: dart-version
+dart-version: ## Show the Dart version
+	@dart --version
+	@which dart
 
 .PHONY: diff
 diff: ## git diff

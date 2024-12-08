@@ -20,7 +20,7 @@
   Suitable for both gaming projects and complex UI applications.
 
 - **Flutter Integration:**
-  Fully compatible with the Flutter ecosystem, including widget management via ECS.
+  Fully compatible with the Flutter ecosystem.
 
 ## Installation
 
@@ -34,7 +34,7 @@ dependencies:
 Then, fetch the package:
 
 ```bash
-flutter pub get
+dart pub get
 ```
 
 ## Advantages of Using MESS

@@ -20,7 +20,6 @@ coverage*
 
 # Codegen
 *.g.dart
-!pubspec.yaml.g.dart
 
 # Logs
 l/
@@ -73,15 +72,11 @@ app.*.map.json
 log.pana.json
 
 # Test
-coverage/
 .coverage/
 /test/**/*.json
 /test/.test_coverage.dart
-reports/
-.reports/
+/reports
+/coverage
 
-# Binaries for programs and plugins
-*.exe
-*.exe~
-
-pubspec.lock
+# Example build output
+example/out/
