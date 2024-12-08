@@ -189,7 +189,7 @@ class _ExtensionListBenchmark extends BenchmarkBase {
   }
 }
 
-extension type _EntityExtension(int _id) implements int {
+extension type const _EntityExtension(int _id) implements int {
   int get id => _id;
 }
 
