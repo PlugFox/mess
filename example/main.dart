@@ -3,6 +3,8 @@
 
 import 'package:mess/mess.dart';
 
+// --- Components --- //
+
 class Position implements Component {
   Position(this.x, this.y);
   double x, y;
