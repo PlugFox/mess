@@ -1,16 +1,27 @@
+import 'config.dart';
 import 'managers.dart';
 import 'system.dart';
 
-/// World
+/// {@template world}
+/// World: manages entities, components, and systems
+/// {@endtemplate}
 class World {
+  /// {@macro world}
+  World(WorldConfig config)
+      : entityManager =
+            EntityManager(initialCapacity: config.initialEntityCapacity),
+        componentManager =
+            ComponentManager(initialCapacity: config.initialComponentCapacity),
+        systems = <System>[];
+
   /// Entity manager
-  final EntityManager entityManager = EntityManager();
+  final EntityManager entityManager;
 
   /// Component manager
-  final ComponentManager componentManager = ComponentManager();
+  final ComponentManager componentManager;
 
   /// Systems
-  final List<System> systems = [];
+  final List<System> systems;
 
   /// Add a system
   void addSystem(System system) {
