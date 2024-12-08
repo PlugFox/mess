@@ -28,7 +28,7 @@ Add MESS to your project by updating your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  mess: ^1.0.0
+  mess: <version>
 ```
 
 Then, fetch the package:
@@ -48,11 +48,11 @@ flutter pub get
 
 We aim to establish MESS as the go-to ECS solution for Flutter. Your contributions, suggestions, and bug reports are always welcome!
 
-- **GitHub:** [Repository Link](https://github.com/your-repo/mess)
-- **Issues:** Report bugs or suggest improvements via [Issues](https://github.com/your-repo/mess/issues).
+- **GitHub:** [Repository Link](https://github.com/plugfox/mess)
+- **Issues:** Report bugs or suggest improvements via [Issues](https://github.com/plugfox/mess/issues).
 - **Pull Requests:** We welcome your code and ideas!
 
 ## License
 
-MESS is distributed under the MIT license. See the [LICENSE](https://github.com/your-repo/mess/blob/main/LICENSE) file for more details.
+MESS is distributed under the MIT license. See the [LICENSE](https://github.com/plugfox/mess/blob/master/LICENSE) file for more details.
 
