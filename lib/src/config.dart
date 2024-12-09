@@ -1,5 +1,4 @@
-import 'package:meta/meta.dart';
-
+/*
 /// {@template config}
 /// Body of the template
 /// {@endtemplate}
@@ -17,3 +16,4 @@ class WorldConfig {
   /// Initial component capacity
   final int initialComponentCapacity;
 }
+ */

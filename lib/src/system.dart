@@ -1,4 +1,4 @@
-// ignore_for_file: one_member_abstracts
+/* // ignore_for_file: one_member_abstracts
 
 import 'managers.dart';
 
@@ -7,3 +7,4 @@ abstract interface class System {
   /// Update the system with the given component manager
   void update(ComponentManager components);
 }
+ */

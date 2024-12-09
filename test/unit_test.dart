@@ -1,3 +1,4 @@
+import 'package:mess/src/util.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -33,6 +34,15 @@ void main() {
         const frameRate = 60;
         const deltaMs = 1000 / frameRate;
         expect(deltaMs, equals(1000 / 60));
+      });
+    });
+
+    group('Generics', () {
+      test('GenericMatcher', () {
+        expect(matchGenerics<int, num>(), isTrue);
+        expect(matchGenerics<num, int>(), isFalse);
+        expect(matchGenerics<int, double>(), isFalse);
+        expect(matchGenerics<int, Object>(), isTrue);
       });
     });
   });
