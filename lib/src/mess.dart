@@ -1,233 +1,94 @@
-// ignore_for_file: one_member_abstracts
+// ignore_for_file: prefer_final_fields
 
 import 'dart:typed_data';
 
-import 'package:meta/meta.dart';
-
 import 'interfaces.dart';
 
-@internal
-sealed class BasePool<T extends Object> implements IPool<T> {
-  abstract final Type _type;
-  abstract final IWorld _world;
-  abstract final int _id;
+/// {@macro mess}
+class Mess implements IMess {
+  /// Create a new [Mess] instance
+  ///
+  /// {@macro mess}
+  Mess()
+      : _entities = Uint32List(512),
+        _recycledEntities = Uint32List(512);
 
-  // --- 1-based index. --- //
+  // --- Entities --- //
 
-  abstract final List<int> _sparseItems;
-  abstract final List<T?> _denseItems;
-  abstract final int _denseItemsCount;
-  abstract final List<int> _recycledItems;
-  abstract final int _recycledItemsCount;
-}
+  /// The next identifier for an [Entity].
+  int _entitiesCount = 0;
 
-@internal
-class Pool<T extends Object> extends BasePool<T> {
-  Pool(
-      {required IWorld world,
-      required int id,
-      required int denseCapacity,
-      required int sparseCapacity,
-      required int recycledCapacity})
-      : _type = T,
-        _world = world,
-        _id = id,
-        _denseItems = List<T?>.filled(denseCapacity + 1, null, growable: false),
-        _denseItemsCount = 1,
-        _sparseItems = List<int>.filled(sparseCapacity, 0),
-        _recycledItems = List<int>.filled(recycledCapacity, 0),
-        _recycledItemsCount = 0;
+  /// All entities in this manager.
+  Uint32List _entities;
+
+  /// Recycled entities in this manager.
+  int _recycledEntitiesCount = 0;
+
+  /// Recycled entities in this manager.
+  Uint32List _recycledEntities;
+
+  /// The number of used entities in this manager.
+  int get usedEntitiesCount => _entitiesCount;
+
+  /// The number of active entities in this manager.
+  int get entitiesCount => _entitiesCount - _recycledEntitiesCount;
 
   @override
-  final Type _type;
-
-  @override
-  final IWorld _world;
-
-  @override
-  final int _id;
-
-  // 1-based index.
-  @override
-  List<int> _sparseItems;
-
-  @override
-  List<T?> _denseItems;
-
-  @override
-  int _denseItemsCount;
-
-  @override
-  List<int> _recycledItems;
-
-  @override
-  int _recycledItemsCount;
-
-  @override
-  IWorld get world => _world;
-
-  @override
-  int get id => _id;
-
-  @override
-  Type get type => _type;
-
-  @override
-  void resize(int capacity) {
-    if (capacity <= _sparseItems.length) return;
-    final newSparse = Uint32List(capacity)..setAll(0, _sparseItems);
-    _sparseItems = newSparse;
-  }
-
-  @override
-  T get(int entity) {
-    assert(entity < _sparseItems.length, 'Entity ID out of bounds');
-    // TODO(plugfox): Add assert
-    //assert(
-    // _world.isEntityAliveInternal(entity),
-    // 'Cant touch destroyed entity.',
-    //);
-    // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-    final result = _denseItems[_sparseItems[entity]];
-    assert(result != null, 'Entity not found as dense items collection');
-    return result!;
-  }
-
-  Object _getRaw(int entity) => get(entity);
-
-  void _setRaw(int entity, Object dataRaw) {
-    assert(
-      dataRaw is Type,
-      'Invalid component data, valid "$T" instance required.',
-    );
-    assert(
-      _sparseItems[entity] > 0,
-      'Component "$T" not attached to entity.',
-    );
-    _denseItems[_sparseItems[entity]] = dataRaw as T;
-  }
-
-  @override
-  void add(int entity, T data) {
-    // TODO(plugfox): Add assert
-    //assert(
-    // _world.isEntityAliveInternal(entity),
-    // 'Cant touch destroyed entity.',
-    //);
-    // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-    assert(
-      _sparseItems[entity] <= 0,
-      'Component "$T" already attached to entity.',
-    );
-    int idx;
-    if (_recycledItemsCount > 0) {
-      idx = _recycledItems[--_recycledItemsCount];
+  Entity createEntity() {
+    final int id;
+    if (_recycledEntitiesCount > 0) {
+      // Reuse recycled entity
+      id = _recycledEntities[--_recycledEntitiesCount];
     } else {
-      idx = _denseItemsCount;
-      if (_denseItemsCount == _denseItems.length) {
-        final newDenseItems = List<T?>.filled(
-          _denseItemsCount << 1,
-          null,
-          growable: false,
-        )..setAll(0, _denseItems);
-        _denseItems = newDenseItems;
+      // Add new entity
+      if (_entitiesCount == _entities.length) {
+        // Resize entities array
+        final newSize = _entitiesCount << 1;
+        _entities = _resizeUint32List(_entities, newSize);
       }
-      _denseItemsCount++;
+      id = _entitiesCount++; // 0..n
     }
-    _sparseItems[entity] = idx;
-    // TODO(plugfox): Implement me
-    //_world.OnEntityChangeInternal(entity, _id, true);
-    //_world.AddComponentToRawEntityInternal(entity, _id);
-    //_world.RaiseEntityChangeEvent (entity, _id, true);
-    // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-  }
-
-  @internal
-  void addRaw(int entity, Object dataRaw) {
-    assert(
-      dataRaw is Type,
-      'Invalid component data, valid "$T" instance required.',
-    );
-    add(entity, dataRaw as T);
+    _entities[id] = 1;
+    //_trigger(ENTITY_CREATED, entity);
+    return Entity(id);
   }
 
   @override
-  bool has(int entity) {
-    // TODO(plugfox): Add assert
-    //assert(
-    // _world.isEntityAliveInternal(entity),
-    // 'Cant touch destroyed entity.',
-    //);
-    // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-    return _sparseItems[entity] > 0;
+  void destroyEntity(Entity entity) {
+    final id = entity.id;
+    assert(id >= 0 && id < _entities.length, 'Entity ID out of bounds');
+    // If entity is already destroyed
+    if (_entities[id] < 0) return;
+    // Recycle entity
+    _entities[id] = 0;
+    if (_recycledEntitiesCount == _recycledEntities.length) {
+      // Resize recycled entities array
+      final newSize = _recycledEntitiesCount << 1;
+      _recycledEntities = _resizeUint32List(_recycledEntities, newSize);
+    }
+    _recycledEntities[_recycledEntitiesCount++] = id;
+    //_trigger(ENTITY_DESTROYED, entity);
   }
 
   @override
-  void del(int entity) {
-    // TODO(plugfox): Add assert
-    //assert(
-    // _world.isEntityAliveInternal(entity),
-    // 'Cant touch destroyed entity.',
-    //);
-    // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-    var sparseData = _sparseItems[entity];
-    if (sparseData > 0) {
-      // TODO(plugfox): Implement me
-      //_world.OnEntityChangeInternal(entity, _id, false);
-      // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-      if (_recycledItemsCount == _recycledItems.length) {
-        final newRecycledItems = List<int>.filled(
-          _recycledItemsCount << 1,
-          0,
-          growable: false,
-        )..setAll(0, _recycledItems);
-        _recycledItems = newRecycledItems;
-      }
-      _recycledItems[_recycledItemsCount++] = sparseData;
-      _denseItems[sparseData] = null;
-      sparseData = 0;
-      // TODO(plugfox): Implement me
-      //var componentsCount =
-      //    _world.RemoveComponentFromRawEntityInternal(entity, _id);
-      //_world.RaiseEntityChangeEvent (entity, _id, false);
-      //if (componentsCount == 0) {
-      //  _world.DelEntity(entity);
-      //}
-      // Mike Matiunin <plugfox@gmail.com>, 09 December 2024
-    }
+  bool hasEntity(Entity entity) {
+    final id = entity.id;
+    assert(id >= 0 && id < _entities.length, 'Entity ID out of bounds');
+    return _entities[id] > 0;
   }
+
+  // --- Components --- //
+
+  // --- Systems --- //
+
+  // --- Triggers --- //
 }
 
-/// {@template world}
-/// World: manages entities, components, and systems
-/// {@endtemplate}
-class World implements IWorld {
-  /* /// {@macro world}
-  World(WorldConfig config)
-      : entityManager =
-            EntityManager(initialCapacity: config.initialEntityCapacity),
-        componentManager =
-            ComponentManager(initialCapacity: config.initialComponentCapacity),
-        systems = <System>[];
-
-  /// Entity manager
-  final EntityManager entityManager;
-
-  /// Component manager
-  final ComponentManager componentManager;
-
-  /// Systems
-  final List<System> systems;
-
-  /// Add a system
-  void addSystem(System system) {
-    systems.add(system);
-  }
-
-  /// Update all systems
-  void update() {
-    for (final system in systems) {
-      system.update(componentManager);
-    }
-  } */
+Uint32List _resizeUint32List(Uint32List array, int newCapacity) {
+  assert(
+    newCapacity > array.length,
+    'New capacity must be greater than current capacity',
+  );
+  final newEntities = Uint32List(newCapacity)..setAll(0, array);
+  return newEntities;
 }

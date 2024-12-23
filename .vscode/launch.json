@@ -24,6 +24,16 @@
         "--dart-define-from-file=config/development.json",
       ],
       "env": {}
+    },
+    {
+      "name": "Unit Test",
+      "type": "dart",
+      "program": "test/unit_test.dart",
+      "request": "launch",
+      "flutterMode": "debug",
+      "cwd": "${workspaceFolder}",
+      "args": [],
+      "env": {}
     }
   ]
 }

@@ -1,4 +1,5 @@
 // ignore_for_file: avoid_print
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:benchmark_harness/benchmark_harness.dart';
@@ -12,7 +13,7 @@ Benchmark ObjectList: 7862.72 us
 Benchmark 2dList: 16965.59 us
 */
 
-const int _listLength = 1000000;
+const int _setLength = 1000000;
 
 // $ dart run benchmarks/iterator_benchmark.dart
 //
@@ -29,6 +30,8 @@ void main() {
     _ExtensionListBenchmark(),
     _MapListBenchmark(),
     _RecordListBenchmark(),
+    _SetBenchmark(),
+    _HashSetBenchmark(),
   ].map<({String name, double us})>(_measure).toList(growable: false)
         ..sort((a, b) => a.us.compareTo(b.us)))
       .map<String>((e) => 'Benchmark ${e.name}: ${e.us.toStringAsFixed(2)} us')
@@ -41,19 +44,19 @@ void main() {
 class _ImmutableIntListBenchmark extends BenchmarkBase {
   _ImmutableIntListBenchmark() : super('ImmutableIntList');
 
-  final List<int> _list = List<int>.filled(_listLength, 0, growable: false);
+  final List<int> _list = List<int>.filled(_setLength, 0, growable: false);
 
   @override
   void setup() {
     super.setup();
-    for (var i = 0; i < _listLength; i++) _list[i] = i;
+    for (var i = 0; i < _setLength; i++) _list[i] = i;
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i];
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -67,14 +70,14 @@ class _MutableIntListBenchmark extends BenchmarkBase {
   void setup() {
     super.setup();
     _list.clear();
-    for (var i = 0; i < _listLength; i++) _list.add(i);
+    for (var i = 0; i < _setLength; i++) _list.add(i);
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i];
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -82,19 +85,19 @@ class _MutableIntListBenchmark extends BenchmarkBase {
 class _Uint32ListBenchmark extends BenchmarkBase {
   _Uint32ListBenchmark() : super('Uint32List');
 
-  final Uint32List _list = Uint32List(_listLength);
+  final Uint32List _list = Uint32List(_setLength);
 
   @override
   void setup() {
     super.setup();
-    for (var i = 0; i < _listLength; i++) _list[i] = i;
+    for (var i = 0; i < _setLength; i++) _list[i] = i;
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i];
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -102,19 +105,19 @@ class _Uint32ListBenchmark extends BenchmarkBase {
 class _Uint64ListBenchmark extends BenchmarkBase {
   _Uint64ListBenchmark() : super('Uint64List');
 
-  final Uint64List _list = Uint64List(_listLength);
+  final Uint64List _list = Uint64List(_setLength);
 
   @override
   void setup() {
     super.setup();
-    for (var i = 0; i < _listLength; i++) _list[i] = i;
+    for (var i = 0; i < _setLength; i++) _list[i] = i;
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i];
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -128,14 +131,14 @@ class _ObjectListBenchmark extends BenchmarkBase {
   void setup() {
     super.setup();
     _list.clear();
-    for (var i = 0; i < _listLength; i++) _list.add(_EntityObject(i));
+    for (var i = 0; i < _setLength; i++) _list.add(_EntityObject(i));
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i].id;
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -156,14 +159,14 @@ class _ListListBenchmark extends BenchmarkBase {
   void setup() {
     super.setup();
     _list.clear();
-    for (var i = 0; i < _listLength; i++) _list.add(List<int>.filled(1, i));
+    for (var i = 0; i < _setLength; i++) _list.add(List<int>.filled(1, i));
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i][0];
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -177,14 +180,14 @@ class _ExtensionListBenchmark extends BenchmarkBase {
   void setup() {
     super.setup();
     _list.clear();
-    for (var i = 0; i < _listLength; i++) _list.add(_EntityExtension(i));
+    for (var i = 0; i < _setLength; i++) _list.add(_EntityExtension(i));
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i].id;
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -202,14 +205,14 @@ class _MapListBenchmark extends BenchmarkBase {
   void setup() {
     super.setup();
     _list.clear();
-    for (var i = 0; i < _listLength; i++) _list.add({'id': i});
+    for (var i = 0; i < _setLength; i++) _list.add({'id': i});
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i]['id'] as int;
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -223,14 +226,14 @@ class _RecordListBenchmark extends BenchmarkBase {
   void setup() {
     super.setup();
     _list.clear();
-    for (var i = 0; i < _listLength; i++) _list.add((id: i));
+    for (var i = 0; i < _setLength; i++) _list.add((id: i));
   }
 
   @override
   void run() {
     var result = 0;
     for (var i = 0; i < _list.length; i++) result += _list[i].id;
-    if (result != _listLength * (_listLength - 1) ~/ 2)
+    if (result != _setLength * (_setLength - 1) ~/ 2)
       throw StateError('Incorrect result: $result');
   }
 }
@@ -263,3 +266,45 @@ final class _EntityStruct extends ffi.Struct {
   @ffi.Uint32()
   external int id;
 } */
+
+class _SetBenchmark extends BenchmarkBase {
+  _SetBenchmark() : super('Set');
+
+  final Set<int> _set = <int>{};
+
+  @override
+  void setup() {
+    super.setup();
+    _set.clear();
+    for (var i = 0; i < _setLength; i++) _set.add(i);
+  }
+
+  @override
+  void run() {
+    var result = 0;
+    for (final i in _set) result += i;
+    if (result != _setLength * (_setLength - 1) ~/ 2)
+      throw StateError('Incorrect result: $result');
+  }
+}
+
+class _HashSetBenchmark extends BenchmarkBase {
+  _HashSetBenchmark() : super('HashSet');
+
+  final Set<int> _set = HashSet<int>();
+
+  @override
+  void setup() {
+    super.setup();
+    _set.clear();
+    for (var i = 0; i < _setLength; i++) _set.add(i);
+  }
+
+  @override
+  void run() {
+    var result = 0;
+    for (final i in _set) result += i;
+    if (result != _setLength * (_setLength - 1) ~/ 2)
+      throw StateError('Incorrect result: $result');
+  }
+}

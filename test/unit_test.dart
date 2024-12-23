@@ -1,6 +1,8 @@
 import 'package:mess/src/util.dart';
 import 'package:test/test.dart';
 
+import 'src/mess_test.dart' as mess_test;
+
 void main() {
   group('Unit', () {
     group('Time', () {
@@ -45,5 +47,7 @@ void main() {
         expect(matchGenerics<int, Object>(), isTrue);
       });
     });
+
+    mess_test.main();
   });
 }
