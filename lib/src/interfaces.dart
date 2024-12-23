@@ -9,6 +9,13 @@ extension type const Entity(int id) {
 /// Manage, create, and destroy entities.
 /// {@endtemplate}
 abstract interface class IMess {
+  /// The number of used entities in this manager.
+  /// This includes entities that have been destroyed but not recycled.
+  int get usedEntitiesCount;
+
+  /// The number of active entities in this manager.
+  int get entitiesCount;
+
   /// Create a new entity
   Entity createEntity();
 

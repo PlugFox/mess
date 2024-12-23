@@ -15,7 +15,8 @@ class Mess implements IMess {
 
   // --- Entities --- //
 
-  /// The next identifier for an [Entity].
+  /// The next identifier for an [Entity]
+  /// and total number of entities in this manager.
   int _entitiesCount = 0;
 
   /// All entities in this manager.
@@ -27,10 +28,10 @@ class Mess implements IMess {
   /// Recycled entities in this manager.
   Uint32List _recycledEntities;
 
-  /// The number of used entities in this manager.
+  @override
   int get usedEntitiesCount => _entitiesCount;
 
-  /// The number of active entities in this manager.
+  @override
   int get entitiesCount => _entitiesCount - _recycledEntitiesCount;
 
   @override
