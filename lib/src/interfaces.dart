@@ -9,9 +9,13 @@ extension type const Entity(int id) {
 /// Manage, create, and destroy entities.
 /// {@endtemplate}
 abstract interface class IMess {
-  /// The number of used entities in this manager.
-  /// This includes entities that have been destroyed but not recycled.
-  int get usedEntitiesCount;
+  /// Current reserved capacity for entities.
+  int get capacity;
+
+  /// The size of an entity in bytes.
+  /// The first byte is a flag for entity existence.
+  /// The next bytes are components pointers.
+  int get entitySize;
 
   /// The number of active entities in this manager.
   int get entitiesCount;
@@ -24,6 +28,10 @@ abstract interface class IMess {
 
   /// Check if an entity is alive.
   bool hasEntity(Entity entity);
+
+  /// Components count of an entity.
+  /// Returns 0 if entity does not exist.
+  int componentsCount(Entity entity);
 
   /*
   /// Add a component to an entity
