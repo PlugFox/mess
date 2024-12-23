@@ -83,6 +83,7 @@ void main() => group(
             ..createEntity()
             ..destroyEntity(entity);
           expect(mess.entitiesCount, equals(2));
+          expect(mess.usedEntitiesCount, equals(3));
           expect(mess.hasEntity(entity), isFalse);
           expect(entity.isAlive(mess), isFalse);
           final reusedEntity = mess.createEntity();
@@ -92,6 +93,7 @@ void main() => group(
           expect(mess.hasEntity(entity), isTrue);
           expect(mess.hasEntity(reusedEntity), isTrue);
           expect(entity.isAlive(mess), isTrue);
+          expect(mess.usedEntitiesCount, equals(3));
         });
       },
     );
