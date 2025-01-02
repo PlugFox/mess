@@ -89,8 +89,7 @@ abstract interface class IMess {
 
   /// Get all entities in the current manager (world)
   /// Returns an empty list if no entities exist.
-  /// Thats a relatively expensive operation,
-  /// because it creates a large list and each entity.
+  /// Thats a relatively expensive operation.
   List<Entity> entities();
 
   /// Remove an entity from the current manager (world)

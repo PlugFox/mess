@@ -118,6 +118,82 @@ void main() => group(
           expect(mess.entitiesCount, equals(3));
           mess.dispose();
         });
+
+        test('Get all entities', () {
+          final mess = Mess.pools([]);
+          expect(mess.entities(), isEmpty);
+
+          final ids = <int>{};
+          for (var i = 0; i < 1920; i++) {
+            final entity = mess.createEntity();
+            ids.add(entity.id);
+          }
+          expect(
+            mess.entities(),
+            allOf([
+              isA<List<Entity>>(),
+              hasLength(1920),
+              everyElement(allOf([
+                isA<Entity>(),
+                predicate<Entity>((e) => ids.contains(e.id) && e.id < 1920),
+              ])),
+            ]),
+          );
+
+          final toDestroy = <int>{
+            0,
+            12,
+            13,
+            48,
+            for (var i = 450; i < 630; i++) i,
+            700,
+            702,
+            703,
+            705,
+            for (var i = 1000; i < 1024; i++) i,
+            1919,
+          };
+
+          for (final id in toDestroy) {
+            mess.destroyEntity(_EntityFake(id));
+            ids.remove(id);
+          }
+
+          expect(
+            mess.entities(),
+            allOf([
+              isA<List<Entity>>(),
+              hasLength(1920 - toDestroy.length),
+              hasLength(ids.length),
+              everyElement(allOf([
+                isA<Entity>(),
+                predicate<Entity>((e) => ids.contains(e.id) && e.id < 1920),
+              ])),
+            ]),
+          );
+
+          final a = mess.createEntity();
+          final b = mess.createEntity();
+          final c = mess.createEntity();
+
+          expect(a.id, lessThan(1920)); // Reuse
+          expect(b.id, lessThan(1920)); // Reuse
+          expect(c.id, lessThan(1920)); // Reuse
+          ids.addAll([a.id, b.id, c.id]);
+
+          expect(
+            mess.entities(),
+            allOf([
+              isA<List<Entity>>(),
+              hasLength(ids.length),
+              everyElement(predicate<Entity>(
+                (e) => ids.contains(e.id) && e.id < 1920,
+              )),
+            ]),
+          );
+
+          mess.dispose();
+        });
       },
     );
 

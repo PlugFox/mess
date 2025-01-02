@@ -47,6 +47,9 @@ final class _Entity implements Entity {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is _Entity && identical(_mess, other._mess) && id == other.id;
+
+  @override
+  String toString() => 'Entity{$id}';
 }
 
 // --- Pools implementations --- //
@@ -290,7 +293,7 @@ class Mess implements IMess {
           growable: false,
         )..setRange(0, _entitiesCount, refs);
         for (var i = _entitiesCount; i < newSize; i++)
-          _refs[i] = _Entity(i, this);
+          _refs[i] = _Entity(i, this); // Fill the rest with new entities
       }
       id = _entitiesCount++; // 0..n
     }
@@ -302,10 +305,20 @@ class Mess implements IMess {
 
   @override
   List<Entity> entities() {
-    /* var count = _entitiesCount - _recycledEntitiesCount;
-    var id = 0;
-    var offset = 0; */
-    throw UnimplementedError();
+    final result = List<Entity>.filled(
+      _entitiesCount - _recycledEntitiesCount,
+      _Entity(0, this),
+      growable: false,
+    );
+    var pos = 0;
+    var offset = 0;
+    for (var i = 0, iMax = _entitiesCount;
+        i < iMax;
+        i++, offset += _entitySize) {
+      if (_entities[offset] == 0) continue; // Entity does not exist
+      result[pos++] = _refs[i];
+    }
+    return result;
   }
 
   @override
