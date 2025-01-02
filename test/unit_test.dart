@@ -2,6 +2,7 @@ import 'package:mess/src/util.dart';
 import 'package:test/test.dart';
 
 import 'src/mess_test.dart' as mess_test;
+import 'src/pool_test.dart' as pool_test;
 
 void main() {
   group('Unit', () {
@@ -49,5 +50,6 @@ void main() {
     });
 
     mess_test.main();
+    pool_test.main();
   });
 }

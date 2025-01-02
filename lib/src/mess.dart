@@ -1,4 +1,3 @@
-import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -7,41 +6,54 @@ import 'interfaces.dart';
 /// {@template mess_pool}
 /// Pool for components of a specific type.
 /// {@endtemplate}
-class MessPool {
+abstract class MessPool<C extends Object> {
   /// Create a new [MessPool] instance
   ///
   /// {@macro mess_pool}
-  MessPool({
-    required this.id,
-    required this.type,
-  });
+  const MessPool({required this.id});
 
-  /// The identifier of this pool.
+  /// Pool ID.
   final int id;
 
   /// Type of components in this pool.
-  final Type type;
+  Type get type => C;
+}
+
+class _MessPoolImpl<C extends Object> extends MessPool<C> {
+  const _MessPoolImpl({required super.id});
 }
 
 /// {@macro mess}
 class Mess implements IMess {
-  /// Create a new [Mess] instance
+  /// Create a new [Mess] instance from ordered pools list.
+  /// Each pool must have a unique ID and type of components.
+  /// Id of each pool must be in range 0..n.
   ///
   /// {@macro mess}
-  Mess(
-    Set<Type> components, {
+  Mess.pools(
+    List<MessPool> pools, {
     int entitySize = 8,
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
   })  : _entitySize = entitySize,
         _entities = Uint16List(math.max(entitiesCapacity, 64) * entitySize),
         _recycledEntities = Uint32List(math.max(recycledCapacity, 64)),
-        poolsCount = components.length,
-        _pools = components.indexed
-            .map((e) => MessPool(id: e.$1, type: e.$2))
-            .toList(growable: false) {
-    for (final pool in _pools) _poolsMap[pool.type] = pool;
-  }
+        poolsCount = pools.length,
+        _poolsMap = <Type, MessPool<Object>>{
+          for (final pool in pools) pool.type: pool,
+        },
+        _pools = List<MessPool<Object>>.unmodifiable(pools),
+        assert(() {
+          final ids = <int>[];
+          for (final pool in pools) ids.add(pool.id);
+          if (ids.toSet().length != pools.length) return false;
+          for (var i = 0; i < pools.length; i++) if (ids[i] != i) return false;
+          return true;
+        }(), 'Invalid pool IDs'),
+        assert(() {
+          final types = <Type>{for (final pool in pools) pool.type};
+          return types.length == pools.length;
+        }(), 'Duplicate pool types');
 
   // --- Entities --- //
 
@@ -135,28 +147,44 @@ class Mess implements IMess {
 
   final List<MessPool> _pools;
 
-  final Map<Type, MessPool> _poolsMap = <Type, MessPool>{};
+  final Map<Type, MessPool> _poolsMap;
 
   @override
   int componentsCount(Entity entity) {
     final id = entity.id;
-    if (id < 0 || id >= _entitiesCount) return 0;
+    if (id < 0 || id >= _entitiesCount) {
+      _throwAssertionError('Entity does not exist');
+      return 0;
+    }
     return math.max(0, _entities[_getEntityOffset(id)] - 1);
   }
 
   @override
-  void setComponent<C extends Object>(Entity entity, C component) {
+  void upsert<C extends Object>(Entity entity, C component) {
     final id = entity.id;
+
     if (C == Object)
       return _throwAssertionError('An implemented Component was expected');
+
     if (id < 0 || id >= _entitiesCount)
       return _throwAssertionError('Entity does not exist');
+
     final offset = _getEntityOffset(id); // Entity offset
     final componentsCount = _entities[offset]; // Number of current components
     if (componentsCount < 1)
       return _throwAssertionError('Entity does not exist');
+
+    final pool = _poolsMap[C];
+    if (pool == null)
+      return _throwAssertionError('Component $C not registered');
+
+    // TODO(plugfox): Check if component already exists in entity
+    // and we should replace it instead of adding a new one.
+    // Mike Matiunin <plugfox@gmail.com>, 02 January 2025
+
     if (componentsCount + 1 >= _entitySize)
       return _throwAssertionError('No more space for components');
+
     _entities[offset] = componentsCount + 1; // Increase components count
     //_entities[offset + 1 + componentsCount] = component;
 
@@ -199,7 +227,7 @@ class Mess implements IMess {
   void dispose() {
     _entities = Uint16List(0);
     _recycledEntities = Uint32List(0);
-    final emptyPool = MessPool(id: 0, type: Object);
+    const emptyPool = _MessPoolImpl<Object>(id: 0);
     for (var i = 0; i < _pools.length; i++) {
       _poolsMap[_pools[i].type] = emptyPool;
       _pools[i] = emptyPool;

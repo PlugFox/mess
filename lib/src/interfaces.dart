@@ -33,7 +33,7 @@ abstract interface class IMess {
   /// Add a component to an entity in the current manager (world)
   /// If entity does not exist, we just skip the operation.
   /// If the entity already has that component it will just return.
-  void setComponent<C extends Object>(Entity entity, C component);
+  void upsert<C extends Object>(Entity entity, C component);
 
   /* /// Add multiple components to an entity
   /// If entity does not exist, we just skip the operation.
