@@ -160,7 +160,7 @@ class Mess implements IMess {
     // Mike Matiunin <plugfox@gmail.com>, 23 December 2024
   }
 
-  @override
+  /* @override
   void setComponents(Entity entity, Map<Type, Object> components) {
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return;
@@ -171,7 +171,7 @@ class Mess implements IMess {
 
     // TODO(plugfox): Implement me
     // Mike Matiunin <plugfox@gmail.com>, 23 December 2024
-  }
+  } */
 
   @override
   List<Object> getComponents(Entity entity) {

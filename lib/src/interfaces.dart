@@ -35,10 +35,10 @@ abstract interface class IMess {
   /// If the entity already has that component it will just return.
   void setComponent<C extends Object>(Entity entity, C component);
 
-  /// Add multiple components to an entity
+  /* /// Add multiple components to an entity
   /// If entity does not exist, we just skip the operation.
   /// If the entity already has that component it will just skip it.
-  void setComponents(Entity entity, Map<Type, Object> components);
+  void setComponents(Entity entity, Map<Type, Object> components); */
 
   /// Components count of an entity.
   /// Returns 0 if entity does not exist.
