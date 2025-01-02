@@ -17,6 +17,11 @@ Get components for 100 entities:
 Benchmark GetComponent#Mess: 36.71 us
 Benchmark GetComponent#Oxygen: 52.67 us
 */
+
+// $ dart run benchmarks/bin/oxygen_benchmark.dart
+//
+// $ dart compile exe -o benchmarks/oxygen_benchmark.exe benchmarks/bin/oxygen_benchmark.dart
+// $ benchmarks/oxygen_benchmark.exe
 void main() {
   final buffer = StringBuffer();
 
@@ -192,7 +197,6 @@ class _RemoveEntity$Oxygen$Benchmark extends BenchmarkBase {
   _RemoveEntity$Oxygen$Benchmark() : super('RemoveEntity#Oxygen');
 
   late oxygen.World world;
-  final queue = Queue<oxygen.Entity>();
 
   @override
   void setup() {
@@ -212,21 +216,23 @@ class _RemoveEntity$Oxygen$Benchmark extends BenchmarkBase {
 
   @override
   void run() {
-    for (var i = 0; i < 100; i++)
-      queue.add(world.createEntity()
+    for (var i = 0; i < 100; i++) {
+      world.createEntity()
         ..add<oxygen.ValueComponent<int>, int>(i)
         ..add<oxygen.ValueComponent<String>, String>('string')
         ..add<oxygen.ValueComponent<num>, num>(i)
         ..add<oxygen.ValueComponent<bool>, bool>(true)
-        ..add<oxygen.ValueComponent<Symbol>, Symbol>(#symbol));
-    for (var i = 0; i < 100; i++) queue.removeLast().dispose();
+        ..add<oxygen.ValueComponent<Symbol>, Symbol>(#symbol)
+        ..dispose();
+    }
     world.entityManager.processRemovedEntities();
   }
 
   @override
   void teardown() {
     super.teardown();
-    if (queue.isNotEmpty) throw StateError('We should have no entities left');
+    if (world.entities.isNotEmpty)
+      throw StateError('We should have no entities left');
   }
 }
 
@@ -234,7 +240,6 @@ class _RemoveEntity$Mess$Benchmark extends BenchmarkBase {
   _RemoveEntity$Mess$Benchmark() : super('RemoveEntity#Mess');
 
   late mess.Mess world;
-  final queue = Queue<int>();
 
   @override
   void setup() {
@@ -257,16 +262,16 @@ class _RemoveEntity$Mess$Benchmark extends BenchmarkBase {
         ..upsertComponent<String>(entity, 'string')
         ..upsertComponent<num>(entity, i)
         ..upsertComponent<bool>(entity, true)
-        ..upsertComponent<Symbol>(entity, #symbol);
-      queue.add(entity);
+        ..upsertComponent<Symbol>(entity, #symbol)
+        ..destroyEntity(entity);
     }
-    for (var i = 0; i < 100; i++) world.destroyEntity(queue.removeLast());
   }
 
   @override
   void teardown() {
     super.teardown();
-    if (queue.isNotEmpty) throw StateError('We should have no entities left');
+    if (world.entitiesCount != 0)
+      throw StateError('We should have no entities left');
     world.dispose();
   }
 }
