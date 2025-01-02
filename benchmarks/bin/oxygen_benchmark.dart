@@ -5,17 +5,25 @@ import 'package:mess/mess.dart' as mess;
 import 'package:oxygen/oxygen.dart' as oxygen;
 
 /*
-Create 10000 entities:
-Benchmark CreateEntity#Mess: 168.66 us
-Benchmark CreateEntity#Oxygen: 12227.98 us
+Create World:
+Benchmark CreateWorld#Oxygen: 9.68 us
+Benchmark CreateWorld#Mess: 24.48 us
+Ratio: 2.53
+
+Create 1000 entities:
+Benchmark CreateEntity#Mess: 1590.07 us
+Benchmark CreateEntity#Oxygen: 11947.30 us
+Ratio: 7.51
 
 Create and remove 100 entities:
-Benchmark RemoveEntity#Mess: 101.63 us
-Benchmark RemoveEntity#Oxygen: 1438.60 us
+Benchmark RemoveEntity#Mess: 101.68 us
+Benchmark RemoveEntity#Oxygen: 1402.18 us
+Ratio: 13.79
 
 Get components for 100 entities:
-Benchmark GetComponent#Mess: 40.82 us
-Benchmark GetComponent#Oxygen: 47.44 us
+Benchmark GetComponent#Mess: 41.81 us
+Benchmark GetComponent#Oxygen: 48.39 us
+Ratio: 1.16
 */
 
 // $ dart run benchmarks/bin/oxygen_benchmark.dart
