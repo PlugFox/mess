@@ -197,8 +197,7 @@ class Mess implements IMess {
     int entitySize = 8,
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
-  })  : _refs = const <_Entity>[],
-        _entitySize = entitySize,
+  })  : _entitySize = entitySize,
         _entities = Uint32List(math.max(entitiesCapacity, 64) * entitySize),
         _recycledEntities = Uint32List(math.max(recycledCapacity, 64)),
         poolsCount = pools.length,
@@ -219,13 +218,7 @@ class Mess implements IMess {
           entitySize > 1,
           'Entity size must be greater than 1 '
           'or you will not be able to add components',
-        ) {
-    _refs = List<_Entity>.generate(
-      math.max(entitiesCapacity, 64),
-      (i) => _Entity(i, this),
-      growable: false,
-    );
-  }
+        );
 
   // --- Entities --- //
 
@@ -252,7 +245,7 @@ class Mess implements IMess {
 
   /// List of entities in this manager.
   /// Allow to get the entity by its ID instead of creating a new instance.
-  List<_Entity> _refs;
+  //List<_Entity> _refs;
 
   /// Recycled entities in this manager.
   int _recycledEntitiesCount = 0;
@@ -286,7 +279,7 @@ class Mess implements IMess {
         _entities = _resizeUint32List(_entities, newSize * _entitySize);
 
         // Resize refs array
-        final refs = _refs;
+        /* final refs = _refs;
         _refs = List<_Entity>.filled(
           newSize,
           _Entity(0, this),
@@ -294,29 +287,28 @@ class Mess implements IMess {
         )..setRange(0, _entitiesCount, refs);
         for (var i = _entitiesCount; i < newSize; i++)
           _refs[i] = _Entity(i, this); // Fill the rest with new entities
+         */
       }
       id = _entitiesCount++; // 0..n
     }
     _entities[_getEntityOffset(id)] = 1; // Entity exists with 0 components
     _masks[id] = const Mask.empty();
     //_trigger(ENTITY_CREATED, entity);
-    return _refs[id];
+    return _Entity(id, this);
+    //return _refs[id];
   }
 
   @override
-  List<Entity> entities() {
-    final result = List<Entity>.filled(
-      _entitiesCount - _recycledEntitiesCount,
-      _Entity(0, this),
-      growable: false,
-    );
+  List<int> entities() {
+    final result = Uint32List(_entitiesCount - _recycledEntitiesCount);
     var pos = 0;
     var offset = 0;
+    final list = _entities;
     for (var i = 0, iMax = _entitiesCount;
         i < iMax;
         i++, offset += _entitySize) {
-      if (_entities[offset] == 0) continue; // Entity does not exist
-      result[pos++] = _refs[i];
+      if (list[offset] != 0) result[pos++] = i; // Add entity ID
+      //result[pos++] = _Entity(i, this); // _refs[i];
     }
     return result;
   }
@@ -560,7 +552,7 @@ class Mess implements IMess {
     _isAlive = false;
     _entities = _recycledEntities = Uint32List(0);
     _entitiesCount = _recycledEntitiesCount = 0;
-    _refs = const <_Entity>[];
+    //_refs = const <_Entity>[];
     _masks.clear();
     _queries.clear();
     const fakePool = _MessPool$Disposed();

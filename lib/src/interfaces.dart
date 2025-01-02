@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart';
+
 /// Entity
 abstract interface class Entity {
   /// Entity ID.
@@ -87,10 +89,12 @@ abstract interface class IMess {
   /// Create a new entity
   Entity createEntity();
 
-  /// Get all entities in the current manager (world)
+  /// Get all entities ids in the current manager (world)
   /// Returns an empty list if no entities exist.
   /// Thats a relatively expensive operation.
-  List<Entity> entities();
+  /// Do not use it in performance critical code, better use queries.
+  @visibleForTesting
+  List<int> entities();
 
   /// Remove an entity from the current manager (world)
   void destroyEntity(Entity entity);
