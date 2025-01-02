@@ -128,6 +128,10 @@ class _MessQuery implements IMessQuery {
   @override
   final Set<Type> components;
 
+  // TODO(plugfox): Instead of List use a custom Uint32List and
+  // and instead of View use a custom buffer from Uint32List (0..size)
+  // Mike Matiunin <plugfox@gmail.com>, 03 January 2025
+
   /// Mutable list of entities with specified components.
   final List<int> _entities;
 
