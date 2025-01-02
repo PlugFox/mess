@@ -1,6 +1,7 @@
 import 'package:mess/src/util.dart';
 import 'package:test/test.dart';
 
+import 'src/mask_test.dart' as mask_test;
 import 'src/mess_test.dart' as mess_test;
 import 'src/pool_test.dart' as pool_test;
 
@@ -49,7 +50,8 @@ void main() {
       });
     });
 
-    mess_test.main();
+    mask_test.main();
     pool_test.main();
+    mess_test.main();
   });
 }

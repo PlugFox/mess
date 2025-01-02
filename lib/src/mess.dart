@@ -35,6 +35,9 @@ final class _Entity implements Entity {
   C get<C extends Object>() => _mess.getComponent<C>(this);
 
   @override
+  bool has<C extends Object>() => _mess.hasComponent<C>(this);
+
+  @override
   List<Object> components() => _mess.getComponents(this);
 
   @override
@@ -164,10 +167,6 @@ final class PoolRegistry {
 
 // --- Queries and Filters --- //
 
-extension type _Mask(int _value) implements int {
-  /* bool contains(int id) => (this & (1 << id)) != 0; */
-}
-
 class _MessQuery implements IMessQuery {
   _MessQuery(this.components) : _entities = <_Entity>[];
 
@@ -195,7 +194,8 @@ class Mess implements IMess {
     int entitySize = 8,
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
-  })  : _entitySize = entitySize,
+  })  : _refs = const <_Entity>[],
+        _entitySize = entitySize,
         _entities = Uint32List(math.max(entitiesCapacity, 64) * entitySize),
         _recycledEntities = Uint32List(math.max(recycledCapacity, 64)),
         poolsCount = pools.length,
@@ -203,10 +203,11 @@ class Mess implements IMess {
           for (final pool in pools) pool.type: pool,
         }),
         _poolsList = List<IMessPool<Object>>.from(pools, growable: false),
-        _queries = HashMap<_Mask, _MessQuery>(),
+        _queries = HashMap<Mask, _MessQuery>(),
         _types = HashMap<Type, int>.of({
           for (var i = 0; i < pools.length; i++) pools[i].type: i,
         }),
+        _masks = HashMap<int, Mask>(),
         assert(
           pools.map((e) => e.type).toSet().length == pools.length,
           'Duplicate pool type',
@@ -215,7 +216,13 @@ class Mess implements IMess {
           entitySize > 1,
           'Entity size must be greater than 1 '
           'or you will not be able to add components',
-        );
+        ) {
+    _refs = List<_Entity>.generate(
+      math.max(entitiesCapacity, 64),
+      (i) => _Entity(i, this),
+      growable: false,
+    );
+  }
 
   // --- Entities --- //
 
@@ -240,6 +247,10 @@ class Mess implements IMess {
   /// Use [_getEntityOffset] to get the offset of an entity.
   Uint32List _entities;
 
+  /// List of entities in this manager.
+  /// Allow to get the entity by its ID instead of creating a new instance.
+  List<_Entity> _refs;
+
   /// Recycled entities in this manager.
   int _recycledEntitiesCount = 0;
 
@@ -260,7 +271,6 @@ class Mess implements IMess {
   @override
   Entity createEntity() {
     assert(isAlive, 'Manager is disposed');
-
     final int id;
     if (_recycledEntitiesCount > 0) {
       // Reuse recycled entity
@@ -271,12 +281,31 @@ class Mess implements IMess {
         // Resize entities array
         final newSize = _entitiesCount << 1;
         _entities = _resizeUint32List(_entities, newSize * _entitySize);
+
+        // Resize refs array
+        final refs = _refs;
+        _refs = List<_Entity>.filled(
+          newSize,
+          _Entity(0, this),
+          growable: false,
+        )..setRange(0, _entitiesCount, refs);
+        for (var i = _entitiesCount; i < newSize; i++)
+          _refs[i] = _Entity(i, this);
       }
       id = _entitiesCount++; // 0..n
     }
     _entities[_getEntityOffset(id)] = 1; // Entity exists with 0 components
+    _masks[id] = const Mask.empty();
     //_trigger(ENTITY_CREATED, entity);
-    return _Entity(id, this);
+    return _refs[id];
+  }
+
+  @override
+  List<Entity> entities() {
+    /* var count = _entitiesCount - _recycledEntitiesCount;
+    var id = 0;
+    var offset = 0; */
+    throw UnimplementedError();
   }
 
   @override
@@ -290,8 +319,10 @@ class Mess implements IMess {
     if (_entities[offset] == 0) return;
 
     // Remove all components from entity
-    for (var i = 0; i < _entities[offset]; i++)
-      _poolsList[_entities[offset + 1 + i]].remove(entity);
+    for (var i = 1; i < _entities[offset]; i++)
+      _poolsList[_entities[offset + i]].remove(entity);
+
+    _masks.remove(id); // Remove entity mask
 
     // Recycle entity
     _entities[offset] = 0; // Mark entity as destroyed
@@ -393,6 +424,9 @@ class Mess implements IMess {
     final pool = _poolsMap[C];
     if (pool == null || pool.remove(entity) == null) return;
 
+    // Update mask
+    _masks[id] = _masks[id]!.clearBit(_types[C]!);
+
     // Decrease components count
     final dataCount = _entities[offset] - 1;
     _entities[offset] = math.max(1, dataCount);
@@ -419,6 +453,16 @@ class Mess implements IMess {
   }
 
   @override
+  bool hasComponent<C extends Object>(Entity entity) {
+    assert(isAlive, 'Manager is disposed');
+
+    final mask = _masks[entity.id];
+    final index = _types[C];
+    if (mask == null || index == null) return false;
+    return mask.hasIndex(index);
+  }
+
+  @override
   List<Object> getComponents(Entity entity) {
     assert(isAlive, 'Manager is disposed');
 
@@ -426,7 +470,7 @@ class Mess implements IMess {
     if (id < 0 || id >= _entitiesCount) return const <Object>[];
     final offset = _getEntityOffset(id);
     return List<Object>.generate(
-      _entities[offset],
+      _entities[offset] - 1,
       (i) => _poolsList[_entities[offset + 1 + i]][entity],
       growable: false,
     );
@@ -436,8 +480,13 @@ class Mess implements IMess {
 
   // --- Queries --- //
 
+  /// Map of entity mask.
+  /// key - entity ID, value - entity mask.
+  /// Allow to check if entity has specified components.
+  final Map<int, Mask> _masks;
+
   /// Map of queries by component mask.
-  final Map<int, _MessQuery> _queries;
+  final Map<Mask, _MessQuery> _queries;
 
   @override
   IMessQuery createQuery(Iterable<Type> components) {
@@ -456,7 +505,8 @@ class Mess implements IMess {
 
     // Find entities with specified components
 
-    // TODO(plugfox): Implement finding entities with specified components
+    // TODO(plugfox): Implement finding entities with specified components,
+    // try to retrieve entities from other queries with similar components.
     // Mike Matiunin <plugfox@gmail.com>, 02 January 2025
 
     /* final componentsCount = types.length;
@@ -497,6 +547,9 @@ class Mess implements IMess {
     _isAlive = false;
     _entities = _recycledEntities = Uint32List(0);
     _entitiesCount = _recycledEntitiesCount = 0;
+    _refs = const <_Entity>[];
+    _masks.clear();
+    _queries.clear();
     const fakePool = _MessPool$Disposed();
     for (var i = 0; i < _poolsList.length; i++) {
       _poolsMap[_poolsList[i].type] = fakePool;

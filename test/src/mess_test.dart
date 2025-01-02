@@ -5,8 +5,8 @@ import 'package:test/test.dart';
 void main() => group(
       'Mess',
       () {
-        test('Create', () {
-          expect(() => Mess.pools([]), returnsNormally);
+        test('Create and dispose', () {
+          expect(() => Mess.pools([]).dispose(), returnsNormally);
         });
 
         test('Create entity', () {
@@ -23,6 +23,7 @@ void main() => group(
             ),
           );
           expect(mess.entitiesCount, equals(1));
+          mess.dispose();
         });
 
         test('Create entities', () {
@@ -45,6 +46,7 @@ void main() => group(
           }
           expect(mess.entitiesCount, equals(1024));
           expect(mess.capacity, greaterThanOrEqualTo(1024));
+          mess.dispose();
         });
 
         test('Destroy entity', () {
@@ -63,6 +65,7 @@ void main() => group(
           expect(mess.hasEntity(entity), isFalse);
           expect(entity.isAlive(), isFalse);
           expect(() => mess.destroyEntity(entity), returnsNormally);
+          mess.dispose();
         });
 
         test('Destroy entities', () {
@@ -88,6 +91,7 @@ void main() => group(
           }
           expect(mess.entitiesCount, equals(0));
           expect(mess.capacity, greaterThanOrEqualTo(1024));
+          mess.dispose();
         });
 
         test('Reuse entity', () {
@@ -112,9 +116,8 @@ void main() => group(
           expect(entity.isAlive(), isTrue);
           expect(mess.capacity, equals(512));
           expect(mess.entitiesCount, equals(3));
+          mess.dispose();
         });
-
-        test('Add components', () {});
       },
     );
 
@@ -134,12 +137,17 @@ class _EntityFake implements Entity {
   int get count => throw UnimplementedError();
 
   @override
-  C get<C extends Object>() {
+  bool isAlive() {
     throw UnimplementedError();
   }
 
   @override
-  bool isAlive() {
+  bool has<C extends Object>() {
+    throw UnimplementedError();
+  }
+
+  @override
+  C get<C extends Object>() {
     throw UnimplementedError();
   }
 

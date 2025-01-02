@@ -19,6 +19,9 @@ abstract interface class Entity {
   /// Get component by type.
   C get<C extends Object>();
 
+  /// Check if entity has a component.
+  bool has<C extends Object>();
+
   /// Get components of an entity.
   List<Object> components();
 }
@@ -84,6 +87,12 @@ abstract interface class IMess {
   /// Create a new entity
   Entity createEntity();
 
+  /// Get all entities in the current manager (world)
+  /// Returns an empty list if no entities exist.
+  /// Thats a relatively expensive operation,
+  /// because it creates a large list and each entity.
+  List<Entity> entities();
+
   /// Remove an entity from the current manager (world)
   void destroyEntity(Entity entity);
 
@@ -104,6 +113,9 @@ abstract interface class IMess {
 
   /// Get component by type.
   C getComponent<C extends Object>(Entity entity);
+
+  /// Check if entity has a component.
+  bool hasComponent<C extends Object>(Entity entity);
 
   /// Get components of an entity.
   List<Object> getComponents(Entity entity);
