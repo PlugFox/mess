@@ -39,6 +39,7 @@ void main() => group(
                   isNotNull,
                   isA<Entity>(),
                   predicate<Entity>((e) => e.id == i),
+                  predicate<Entity>((e) => e.isAlive()),
                 ],
               ),
             );
