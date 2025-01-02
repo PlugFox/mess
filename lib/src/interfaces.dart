@@ -27,9 +27,6 @@ abstract interface class Entity {
 /// Pool for components of a specific type.
 /// {@endtemplate}
 abstract interface class IMessPool<C extends Object> {
-  /// Pool ID.
-  int get id;
-
   /// Type of components in this pool.
   Type get type;
 
@@ -50,6 +47,17 @@ abstract interface class IMessPool<C extends Object> {
   // void copy(Entity from, Entity to);
 }
 
+/// {@template mess_query}
+/// Query for entities with specific components.
+/// {@endtemplate}
+abstract interface class IMessQuery {
+  /// Types of components in this query.
+  Set<Type> get components;
+
+  /// Immutable view of entities with specified components.
+  List<Entity> get entities;
+}
+
 /// {@template mess}
 /// Mess: entity-component-system manager.
 /// Manage, create, and destroy entities.
@@ -66,6 +74,9 @@ abstract interface class IMess {
 
   /// The number of active entities in this manager.
   int get entitiesCount;
+
+  /// Check if the manager (world) is alive and running (not disposed).
+  bool get isAlive;
 
   /// Check if the manager (world) is disposed.
   bool get isDisposed;
@@ -97,9 +108,9 @@ abstract interface class IMess {
   /// Get components of an entity.
   List<Object> getComponents(Entity entity);
 
-  /*
-  Query createQuery(List<Type> types);
-  */
+  /// Create a new query for entities with specific components.
+  /// Provide a more rare component first for better performance.
+  IMessQuery createQuery(Iterable<Type> components);
 
   /// Dispose of the current manager (world)
   void dispose();

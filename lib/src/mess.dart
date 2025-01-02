@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:meta/meta.dart';
 
 import 'interfaces.dart';
+import 'mask.dart';
 
 // --- Entity --- //
 
@@ -35,21 +36,23 @@ final class _Entity implements Entity {
 
   @override
   List<Object> components() => _mess.getComponents(this);
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _Entity && identical(_mess, other._mess) && id == other.id;
 }
 
 // --- Pools implementations --- //
 
 class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   /// Create a new pool for components of a specific type.
-  _MessPool$MapImpl({
-    required this.id,
-  }) : _components = HashMap<int, C>();
+  _MessPool$MapImpl() : _components = HashMap<int, C>();
 
   final Map<int, C> _components;
-
-  /// Pool ID.
-  @override
-  final int id;
 
   /// Type of components in this pool.
   @override
@@ -88,9 +91,6 @@ class _MessPool$Disposed implements IMessPool<Object> {
   const _MessPool$Disposed();
 
   @override
-  int get id => -1;
-
-  @override
   Type get type => Null;
 
   static Never _throwDisposedError() => throw StateError('Pool is disposed');
@@ -116,38 +116,34 @@ final class PoolRegistry {
   factory PoolRegistry() => PoolRegistry._(PoolRegistry.hashMap());
 
   /// Create a new [PoolRegistry] instance with a specified custom pool factory.
-  factory PoolRegistry.custom(
-          IMessPool<C> Function<C extends Object>(int id) builder) =>
-      PoolRegistry._(builder);
+  factory PoolRegistry.custom(IMessPool<C> Function<C extends Object>() fn) =>
+      PoolRegistry._(fn);
 
   /// Create a new [PoolRegistry] instance.
   PoolRegistry._(this._factoryByDefault)
-      : _factories = <Type, IMessPool Function(int id)>{};
+      : _factories = <Type, IMessPool Function()>{};
 
   /// Get a HashMap pool factory for a specific component type.
-  static IMessPool<C> Function<C extends Object>(int id) hashMap() =>
-      <T extends Object>(id) => _MessPool$MapImpl<T>(id: id);
+  static IMessPool<C> Function<C extends Object>() hashMap() =>
+      // ignore: unnecessary_lambdas
+      <T extends Object>() => _MessPool$MapImpl<T>();
 
   /// Default pool factory for HashMap pools and method [register]
-  final IMessPool<C> Function<C extends Object>(int id) _factoryByDefault;
+  final IMessPool<C> Function<C extends Object>() _factoryByDefault;
 
   /// Registered factories for specific component types.
-  final Map<Type, IMessPool Function(int id)> _factories;
+  final Map<Type, IMessPool Function()> _factories;
 
   /// Register a new pool for a specific component type.
   void register<C extends Object>() => _factories[C] = _factoryByDefault<C>;
 
   /// Register a new pool for a specific component type with a custom factory.
-  void registerFactory<C extends Object>(
-          IMessPool<C> Function(int id) factory) =>
+  void registerFactory<C extends Object>(IMessPool<C> Function() factory) =>
       _factories[C] = factory;
 
   /// Build a list of pools for a [Mess] instance.
-  List<IMessPool> build() => List<IMessPool>.generate(
-        _factories.length,
-        (i) => _factories.values.elementAt(i)(i),
-        growable: false,
-      );
+  List<IMessPool> build() =>
+      _factories.values.map((f) => f()).toList(growable: false);
 
   /// Create a new [Mess] instance with registered pools.
   Mess createMess({
@@ -166,6 +162,25 @@ final class PoolRegistry {
   void clear() => _factories.clear();
 }
 
+// --- Queries and Filters --- //
+
+extension type _Mask(int _value) implements int {
+  /* bool contains(int id) => (this & (1 << id)) != 0; */
+}
+
+class _MessQuery implements IMessQuery {
+  _MessQuery(this.components) : _entities = <_Entity>[];
+
+  @override
+  final Set<Type> components;
+
+  /// Mutable list of entities with specified components.
+  final List<_Entity> _entities;
+
+  @override
+  late final List<Entity> entities = UnmodifiableListView<Entity>(_entities);
+}
+
 // --- MESS / Entity Manager --- //
 
 /// {@macro mess}
@@ -181,24 +196,26 @@ class Mess implements IMess {
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
   })  : _entitySize = entitySize,
-        _entities = Uint16List(math.max(entitiesCapacity, 64) * entitySize),
+        _entities = Uint32List(math.max(entitiesCapacity, 64) * entitySize),
         _recycledEntities = Uint32List(math.max(recycledCapacity, 64)),
         poolsCount = pools.length,
         _poolsMap = HashMap<Type, IMessPool<Object>>.of({
           for (final pool in pools) pool.type: pool,
         }),
-        _pools = List<IMessPool<Object>>.from(pools, growable: false),
-        assert(() {
-          final ids = <int>[];
-          for (final pool in pools) ids.add(pool.id);
-          if (ids.toSet().length != pools.length) return false;
-          for (var i = 0; i < pools.length; i++) if (ids[i] != i) return false;
-          return true;
-        }(), 'Invalid pool IDs'),
-        assert(() {
-          final types = <Type>{for (final pool in pools) pool.type};
-          return types.length == pools.length;
-        }(), 'Duplicate pool types');
+        _poolsList = List<IMessPool<Object>>.from(pools, growable: false),
+        _queries = HashMap<_Mask, _MessQuery>(),
+        _types = HashMap<Type, int>.of({
+          for (var i = 0; i < pools.length; i++) pools[i].type: i,
+        }),
+        assert(
+          pools.map((e) => e.type).toSet().length == pools.length,
+          'Duplicate pool type',
+        ),
+        assert(
+          entitySize > 1,
+          'Entity size must be greater than 1 '
+          'or you will not be able to add components',
+        );
 
   // --- Entities --- //
 
@@ -221,7 +238,7 @@ class Mess implements IMess {
   /// 3 - entity exists and has two components
   ///
   /// Use [_getEntityOffset] to get the offset of an entity.
-  Uint16List _entities;
+  Uint32List _entities;
 
   /// Recycled entities in this manager.
   int _recycledEntitiesCount = 0;
@@ -242,7 +259,7 @@ class Mess implements IMess {
 
   @override
   Entity createEntity() {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final int id;
     if (_recycledEntitiesCount > 0) {
@@ -253,7 +270,7 @@ class Mess implements IMess {
       if (_entitiesCount * _entitySize == _entities.length) {
         // Resize entities array
         final newSize = _entitiesCount << 1;
-        _entities = _resizeUint16List(_entities, newSize * _entitySize);
+        _entities = _resizeUint32List(_entities, newSize * _entitySize);
       }
       id = _entitiesCount++; // 0..n
     }
@@ -264,13 +281,17 @@ class Mess implements IMess {
 
   @override
   void destroyEntity(Entity entity) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return;
     final offset = _getEntityOffset(id);
     // If entity is already destroyed
     if (_entities[offset] == 0) return;
+
+    // TODO(plugfox): Delete all components of the entity
+    // Mike Matiunin <plugfox@gmail.com>, 02 January 2025
+
     // Recycle entity
     _entities[offset] = 0; // Entity does not exist
     if (_recycledEntitiesCount == _recycledEntities.length) {
@@ -284,7 +305,7 @@ class Mess implements IMess {
 
   @override
   bool hasEntity(Entity entity) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return false;
@@ -296,13 +317,21 @@ class Mess implements IMess {
   /// The number of pools in this manager.
   final int poolsCount;
 
-  final List<IMessPool> _pools;
+  /// Map of component types to their IDs.
+  /// Allow to get the component ID by type.
+  final Map<Type, int> _types;
 
+  /// List of pools in this manager.
+  /// Allows to retrieve the pool by index of the component type.
+  final List<IMessPool> _poolsList;
+
+  /// Map of component types to their pools.
+  /// Allow to get the pool by component type.
   final Map<Type, IMessPool> _poolsMap;
 
   @override
   int componentsCount(Entity entity) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) {
@@ -314,7 +343,7 @@ class Mess implements IMess {
 
   @override
   void upsertComponent<C extends Object>(Entity entity, C component) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final id = entity.id;
 
@@ -338,7 +367,7 @@ class Mess implements IMess {
       if (componentsCount + 1 >= _entitySize)
         return _throwAssertionError('No more space for components');
       _entities[offset] = componentsCount + 1; // Increase components count
-      _entities[offset + 1 + componentsCount] = pool.id; // Add component ID
+      _entities[offset + 1 + componentsCount] = _types[C]!; // Add component ID
     }
 
     // Add component to pool
@@ -348,7 +377,7 @@ class Mess implements IMess {
   /// Remove a component from an entity in the current manager (world) by type.
   @override
   void removeComponent<C extends Object>(Entity entity) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final id = entity.id;
 
@@ -367,9 +396,9 @@ class Mess implements IMess {
     final dataCount = _entities[offset] - 1;
     _entities[offset] = math.max(1, dataCount);
     final dataOffset = offset + 1;
-    final poolId = pool.id;
+    final typeId = _types[C];
     for (var i = 0; i <= dataCount; i++) {
-      if (_entities[dataOffset + i] != poolId) continue; // Another component
+      if (_entities[dataOffset + i] != typeId) continue; // Another component
       // Component found
       if (i == dataCount) return; // Last component - do nothing
       // Move last component to the removed component position and fill the gap
@@ -381,7 +410,7 @@ class Mess implements IMess {
 
   @override
   C getComponent<C extends Object>(Entity entity) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final pool = _poolsMap[C];
     if (pool == null) throw Exception('Component $C not registered');
@@ -390,14 +419,14 @@ class Mess implements IMess {
 
   @override
   List<Object> getComponents(Entity entity) {
-    assert(isDisposed, 'Manager is disposed');
+    assert(isAlive, 'Manager is disposed');
 
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return const <Object>[];
     final offset = _getEntityOffset(id);
     return List<Object>.generate(
       _entities[offset],
-      (i) => _pools[_entities[offset + 1 + i]][entity],
+      (i) => _poolsList[_entities[offset + 1 + i]][entity],
       growable: false,
     );
   }
@@ -406,37 +435,73 @@ class Mess implements IMess {
 
   // --- Queries --- //
 
+  /// Map of queries by component mask.
+  final Map<int, _MessQuery> _queries;
+
+  @override
+  IMessQuery createQuery(Iterable<Type> components) {
+    assert(isAlive, 'Manager is disposed');
+
+    final types = HashSet<Type>.of(components);
+    if (types.isEmpty || types.length > _entitySize - 2)
+      return _MessQuery(const <Type>{}); // Empty query
+
+    // Calculate component mask
+    final mask = Mask.calculate(types, _types);
+    final exist = _queries[mask];
+    if (exist != null) return exist; // Return existing query
+
+    final query = _queries[mask] = _MessQuery(types);
+
+    // Find entities with specified components
+
+    // TODO(plugfox): Implement finding entities with specified components
+    // Mike Matiunin <plugfox@gmail.com>, 02 January 2025
+
+    /* final componentsCount = types.length;
+    for (var i = 0; i < _entitiesCount; i++) {
+      final offset = _getEntityOffset(i);
+      final componentsCount = _entities[offset] - 1;
+      if (componentsCount < componentsCount) continue; // Not enough components
+      var found = true;
+      for (var j = 0; j < componentsCount; j++) {
+        final poolId = _entities[offset + 1 + j];
+        if (!types.contains(_pools[poolId].type)) {
+          found = false;
+          break;
+        }
+      }
+      if (found) query._entities.add(_Entity(i, this));
+    } */
+
+    return query;
+  }
+
   // --- Triggers --- //
 
   // --- Dispose --- //
 
   @override
+  bool get isAlive => _isAlive;
+
+  @override
   bool get isDisposed => _isDisposed;
-  bool _isDisposed = false;
+
+  bool _isDisposed = false, _isAlive = true;
 
   @override
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
-    _entities = Uint16List(0);
-    _entitiesCount = 0;
-    _recycledEntities = Uint32List(0);
-    _recycledEntitiesCount = 0;
+    _isAlive = false;
+    _entities = _recycledEntities = Uint32List(0);
+    _entitiesCount = _recycledEntitiesCount = 0;
     const fakePool = _MessPool$Disposed();
-    for (var i = 0; i < _pools.length; i++) {
-      _poolsMap[_pools[i].type] = fakePool;
-      _pools[i] = fakePool;
+    for (var i = 0; i < _poolsList.length; i++) {
+      _poolsMap[_poolsList[i].type] = fakePool;
+      _poolsList[i] = fakePool;
     }
   }
-}
-
-Uint16List _resizeUint16List(Uint16List array, int newCapacity) {
-  assert(
-    newCapacity > array.length,
-    'New capacity must be greater than current capacity',
-  );
-  final newEntities = Uint16List(newCapacity)..setAll(0, array);
-  return newEntities;
 }
 
 Uint32List _resizeUint32List(Uint32List array, int newCapacity) {

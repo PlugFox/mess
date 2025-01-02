@@ -1,4 +1,7 @@
+import 'dart:collection';
+
 import 'package:mess/mess.dart';
+import 'package:mess/src/mask.dart';
 import 'package:test/test.dart';
 
 void main() => group('Pool', () {
@@ -18,11 +21,6 @@ void main() => group('Pool', () {
                 equals(3),
               )
               .having(
-                (l) => l.map((p) => p.id),
-                'length',
-                containsAllInOrder([0, 1, 2]),
-              )
-              .having(
                 (l) => l.map((p) => p.type),
                 'types',
                 containsAll([int, String, num]),
@@ -38,13 +36,94 @@ void main() => group('Pool', () {
           ),
         );
       });
+
+      test('Mask', () {
+        final pools = [
+          const _MessPool$Fake<int>(),
+          const _MessPool$Fake<String>(),
+          const _MessPool$Fake<num>(),
+          const _MessPool$Fake<Exception>(),
+        ];
+        final types = HashMap<Type, int>.of(
+            {for (var i = 0; i < pools.length; i++) pools[i].type: i});
+
+        expect(
+          Mask.calculate([int, String], types),
+          allOf(
+            equals(Mask.calculate([int, String], types)),
+            equals(Mask.calculate([String, int], types)),
+            isNot(equals(Mask.calculate([int], types))),
+            isNot(equals(Mask.calculate([String], types))),
+            isNot(equals(Mask.calculate([int, String, num], types))),
+            isNot(equals(Mask.calculate([int, num], types))),
+            isNot(equals(Mask.calculate([num, String], types))),
+          ),
+        );
+
+        final queries = <List<Type>>[
+          [int, String],
+          [String, int],
+          [int],
+          [String],
+          [int, String, num],
+          [int, num],
+          [Exception],
+          [num, String],
+        ];
+        final masks = <int, List<Type>>{
+          for (final query in queries) Mask.calculate(query, types): query
+        };
+
+        expect(
+          masks,
+          allOf(
+            isNotEmpty,
+            hasLength(7),
+          ),
+        );
+
+        // Try to find the masks for each type.
+        final numsMask = 1 << types[num]!;
+        final found = <List<Type>>[
+          for (final mask in masks.entries)
+            if ((mask.key & numsMask) != 0) mask.value
+        ];
+        expect(
+          found,
+          allOf(
+            isNotEmpty,
+            hasLength(3),
+            containsAll([
+              [num, String],
+              [int, String, num],
+              [int, num],
+            ]),
+          ),
+        );
+
+        // Try to find mask for combinations of int and String.
+        /*
+        final combinedMask = 1 << poolMap[int]!.id | 1 << poolMap[String]!.id;
+        final found2 = <List<Type>>[
+          for (final mask in masks.entries)
+            if ((mask.key & combinedMask) != 0) mask.value
+        ];
+        expect(
+          found2,
+          allOf(
+            isNotEmpty,
+            hasLength(2),
+            containsAll([
+              [String, int],
+              [int, String, num],
+            ]),
+          ),
+        ); */
+      });
     });
 
 class _MessPool$Fake<T extends Object> implements IMessPool<T> {
-  const _MessPool$Fake(this.id);
-
-  @override
-  final int id;
+  const _MessPool$Fake();
 
   @override
   Type get type => T;

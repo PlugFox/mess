@@ -1,4 +1,5 @@
 import 'package:mess/mess.dart';
+import 'package:meta/meta.dart';
 import 'package:test/test.dart';
 
 void main() => group(
@@ -28,7 +29,7 @@ void main() => group(
           final mess = Mess.pools([]);
           expect(mess.capacity, equals(512));
           for (var i = 0; i < 1024; i++) {
-            expect(mess.hasEntity(Entity(i)), isFalse);
+            expect(mess.hasEntity(_EntityFake(i)), isFalse);
             final entity = mess.createEntity();
             expect(
               entity,
@@ -40,7 +41,7 @@ void main() => group(
                 ],
               ),
             );
-            expect(mess.hasEntity(Entity(i)), isTrue);
+            expect(mess.hasEntity(_EntityFake(i)), isTrue);
           }
           expect(mess.entitiesCount, equals(1024));
           expect(mess.capacity, greaterThanOrEqualTo(1024));
@@ -48,16 +49,19 @@ void main() => group(
 
         test('Destroy entity', () {
           final mess = Mess.pools([]);
-          expect(() => mess.destroyEntity(const Entity(-1)), returnsNormally);
-          expect(() => mess.destroyEntity(const Entity(0)), returnsNormally);
-          expect(() => mess.destroyEntity(const Entity(1000)), returnsNormally);
+          expect(
+              () => mess.destroyEntity(const _EntityFake(-1)), returnsNormally);
+          expect(
+              () => mess.destroyEntity(const _EntityFake(0)), returnsNormally);
+          expect(() => mess.destroyEntity(const _EntityFake(1000)),
+              returnsNormally);
           final entity = mess.createEntity();
           expect(mess.hasEntity(entity), isTrue);
           expect(mess.entitiesCount, equals(1));
           mess.destroyEntity(entity);
           expect(mess.entitiesCount, equals(0));
           expect(mess.hasEntity(entity), isFalse);
-          expect(entity.isAlive(mess), isFalse);
+          expect(entity.isAlive(), isFalse);
           expect(() => mess.destroyEntity(entity), returnsNormally);
         });
 
@@ -79,7 +83,7 @@ void main() => group(
           }
           expect(mess.entitiesCount, equals(1024));
           for (var i = 0; i < 1024; i++) {
-            final entity = Entity(i);
+            final entity = _EntityFake(i);
             mess.destroyEntity(entity);
           }
           expect(mess.entitiesCount, equals(0));
@@ -98,14 +102,14 @@ void main() => group(
           expect(mess.entitiesCount, equals(2));
           expect(mess.capacity, equals(512));
           expect(mess.hasEntity(entity), isFalse);
-          expect(entity.isAlive(mess), isFalse);
+          expect(entity.isAlive(), isFalse);
           final reusedEntity = mess.createEntity();
           expect(mess.entitiesCount, equals(3));
           expect(entity, equals(reusedEntity));
           expect(entity.id, equals(reusedEntity.id));
           expect(mess.hasEntity(entity), isTrue);
           expect(mess.hasEntity(reusedEntity), isTrue);
-          expect(entity.isAlive(mess), isTrue);
+          expect(entity.isAlive(), isTrue);
           expect(mess.capacity, equals(512));
           expect(mess.entitiesCount, equals(3));
         });
@@ -113,3 +117,39 @@ void main() => group(
         test('Add components', () {});
       },
     );
+
+@immutable
+class _EntityFake implements Entity {
+  const _EntityFake(this.id);
+
+  @override
+  final int id;
+
+  @override
+  List<Object> components() {
+    throw UnimplementedError();
+  }
+
+  @override
+  int get count => throw UnimplementedError();
+
+  @override
+  C get<C extends Object>() {
+    throw UnimplementedError();
+  }
+
+  @override
+  bool isAlive() {
+    throw UnimplementedError();
+  }
+
+  @override
+  void remove<C extends Object>() {
+    throw UnimplementedError();
+  }
+
+  @override
+  void upsert<C extends Object>(C component) {
+    throw UnimplementedError();
+  }
+}
