@@ -6,16 +6,16 @@ import 'package:oxygen/oxygen.dart' as oxygen;
 
 /*
 Create 100 entities:
-Benchmark CreateEntity#Mess: 1297.43 us
-Benchmark CreateEntity#Oxygen: 1819.29 us
+Benchmark CreateEntity#Mess: 1018.85 us
+Benchmark CreateEntity#Oxygen: 1822.54 us
 
-Create and remove 100 entity:
-Benchmark RemoveEntity#Mess: 126.60 us
-Benchmark RemoveEntity#Oxygen: 1504.43 us
+Create and remove 100 entities:
+Benchmark RemoveEntity#Mess: 108.36 us
+Benchmark RemoveEntity#Oxygen: 1550.40 us
 
 Get components for 100 entities:
-Benchmark GetComponent#Mess: 36.71 us
-Benchmark GetComponent#Oxygen: 52.67 us
+Benchmark GetComponent#Mess: 38.71 us
+Benchmark GetComponent#Oxygen: 50.59 us
 */
 
 // $ dart run benchmarks/bin/oxygen_benchmark.dart
@@ -48,7 +48,7 @@ void main() {
     _GetEntities$Mess$Benchmark(),
   ]); */
 
-  dvd('Create and remove 100 entity:');
+  dvd('Create and remove 100 entities:');
   measure(<BenchmarkBase>[
     _RemoveEntity$Oxygen$Benchmark(),
     _RemoveEntity$Mess$Benchmark(),
