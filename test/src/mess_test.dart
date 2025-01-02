@@ -9,7 +9,7 @@ void main() => group(
         });
 
         test('Create entity', () {
-          final mess = Mess();
+          final mess = Mess(components: {});
           final entity = mess.createEntity();
           expect(
             entity,
@@ -25,7 +25,7 @@ void main() => group(
         });
 
         test('Create entities', () {
-          final mess = Mess();
+          final mess = Mess(components: {});
           expect(mess.capacity, equals(512));
           for (var i = 0; i < 1024; i++) {
             expect(mess.hasEntity(Entity(i)), isFalse);
@@ -47,7 +47,7 @@ void main() => group(
         });
 
         test('Destroy entity', () {
-          final mess = Mess();
+          final mess = Mess(components: {});
           expect(() => mess.destroyEntity(const Entity(-1)), returnsNormally);
           expect(() => mess.destroyEntity(const Entity(0)), returnsNormally);
           expect(() => mess.destroyEntity(const Entity(1000)), returnsNormally);
@@ -62,7 +62,7 @@ void main() => group(
         });
 
         test('Destroy entities', () {
-          final mess = Mess();
+          final mess = Mess(components: {});
           expect(mess.capacity, equals(512));
           for (var i = 0; i < 1024; i++) {
             final entity = mess.createEntity();
@@ -87,7 +87,7 @@ void main() => group(
         });
 
         test('Reuse entity', () {
-          final mess = Mess();
+          final mess = Mess(components: {});
           final entity = mess.createEntity();
           expect(mess.entitiesCount, equals(1));
           expect(mess.hasEntity(entity), isTrue);
@@ -110,6 +110,6 @@ void main() => group(
           expect(mess.entitiesCount, equals(3));
         });
 
-        test('Add component', () {});
+        test('Add components', () {});
       },
     );

@@ -1,11 +1,27 @@
-// ignore_for_file: prefer_final_fields
-
+import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'interfaces.dart';
 
-// --- Entity offsets --- //
+/// {@template mess_pool}
+/// Pool for components of a specific type.
+/// {@endtemplate}
+class MessPool {
+  /// Create a new [MessPool] instance
+  ///
+  /// {@macro mess_pool}
+  MessPool({
+    required this.id,
+    required this.type,
+  });
+
+  /// The identifier of this pool.
+  final int id;
+
+  /// Type of components in this pool.
+  final Type type;
+}
 
 /// {@macro mess}
 class Mess implements IMess {
@@ -13,17 +29,25 @@ class Mess implements IMess {
   ///
   /// {@macro mess}
   Mess({
+    required Set<Type> components,
     int entitySize = 8,
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
   })  : _entitySize = entitySize,
         _entities = Uint16List(math.max(entitiesCapacity, 64) * entitySize),
-        _recycledEntities = Uint32List(math.max(recycledCapacity, 64));
+        _recycledEntities = Uint32List(math.max(recycledCapacity, 64)),
+        poolsCount = components.length,
+        _pools = components.indexed
+            .map((e) => MessPool(id: e.$1, type: e.$2))
+            .toList(growable: false) {
+    for (final pool in _pools) _poolsMap[pool.type] = pool;
+  }
 
   // --- Entities --- //
 
   /// The size of each entity.
-  int _entitySize;
+  /// This is the max number of components an entity can have + 1.
+  final int _entitySize;
 
   /// The next identifier for an [Entity]
   /// and total number of entities in this manager.
@@ -106,6 +130,13 @@ class Mess implements IMess {
 
   // --- Components --- //
 
+  /// The number of pools in this manager.
+  final int poolsCount;
+
+  final List<MessPool> _pools;
+
+  final Map<Type, MessPool> _poolsMap = <Type, MessPool>{};
+
   @override
   int componentsCount(Entity entity) {
     final id = entity.id;
@@ -113,9 +144,63 @@ class Mess implements IMess {
     return math.max(0, _entities[_getEntityOffset(id)] - 1);
   }
 
+  @override
+  void setComponent<C extends Object>(Entity entity, C component) {
+    final id = entity.id;
+    if (C == Object) return; // An implemented Component was expected
+    if (id < 0 || id >= _entitiesCount) return; // Entity does not exist
+    final offset = _getEntityOffset(id); // Entity offset
+    final componentsCount = _entities[offset]; // Number of current components
+    if (componentsCount < 1) return; // Entity does not exist
+    if (componentsCount + 1 >= _entitySize) return; // No more space
+    _entities[offset] = componentsCount + 1; // Increase components count
+    //_entities[offset + 1 + componentsCount] = component;
+
+    // TODO(plugfox): Implement me
+    // Mike Matiunin <plugfox@gmail.com>, 23 December 2024
+  }
+
+  @override
+  void setComponents(Entity entity, Map<Type, Object> components) {
+    final id = entity.id;
+    if (id < 0 || id >= _entitiesCount) return;
+    final offset = _getEntityOffset(id);
+    final componentsCount = _entities[offset];
+    if (componentsCount + components.length >= _entitySize) return;
+    _entities[offset] = componentsCount + components.length;
+
+    // TODO(plugfox): Implement me
+    // Mike Matiunin <plugfox@gmail.com>, 23 December 2024
+  }
+
+  @override
+  List<Object> getComponents(Entity entity) {
+    final id = entity.id;
+    if (id < 0 || id >= _entitiesCount) return const <Object>[];
+    final offset = _getEntityOffset(id);
+    return List<Object>.generate(
+      _entities[offset],
+      (i) => _entities[offset + 1 + i],
+      growable: false,
+    );
+  }
+
   // --- Systems --- //
 
   // --- Triggers --- //
+
+  // --- Dispose --- //
+
+  @override
+  void dispose() {
+    _entities = Uint16List(0);
+    _recycledEntities = Uint32List(0);
+    final emptyPool = MessPool(id: 0, type: Object);
+    for (var i = 0; i < _pools.length; i++) {
+      _poolsMap[_pools[i].type] = emptyPool;
+      _pools[i] = emptyPool;
+    }
+  }
 }
 
 Uint16List _resizeUint16List(Uint16List array, int newCapacity) {

@@ -7,6 +7,7 @@ extension type const Entity(int id) {
 /// {@template mess}
 /// Mess: entity-component-system manager.
 /// Manage, create, and destroy entities.
+/// Operate on entities with components via pools.
 /// {@endtemplate}
 abstract interface class IMess {
   /// Current reserved capacity for entities.
@@ -29,13 +30,24 @@ abstract interface class IMess {
   /// Check if an entity is alive.
   bool hasEntity(Entity entity);
 
+  /// Add a component to an entity in the current manager (world)
+  /// If entity does not exist, we just skip the operation.
+  /// If the entity already has that component it will just return.
+  void setComponent<C extends Object>(Entity entity, C component);
+
+  /// Add multiple components to an entity
+  /// If entity does not exist, we just skip the operation.
+  /// If the entity already has that component it will just skip it.
+  void setComponents(Entity entity, Map<Type, Object> components);
+
   /// Components count of an entity.
   /// Returns 0 if entity does not exist.
   int componentsCount(Entity entity);
 
+  /// Get components of an entity.
+  List<Object> getComponents(Entity entity);
+
   /*
-  /// Add a component to an entity
-  void addComponent<C extends Object>(Entity entity, C component);
 
   /// Create a new pool
   IPool<C> createPool<C extends Object>();
@@ -45,14 +57,20 @@ abstract interface class IMess {
 
   Query createQuery(List<Type> types);
   */
+
+  /// Dispose of the current manager (world)
+  void dispose();
 }
 
 /// {@template system}
 /// System: processes entities with specific components
 /// {@endtemplate}
 abstract interface class ISystem {
-  /// World reference for current system
-  IMess? get world;
+  /// Entity manager (world) reference for current system
+  IMess get world;
+
+  /// Execute system logic with delta time
+  void execute(double delta);
 }
 
 /* /// {@template pool}
