@@ -80,3 +80,4 @@ log.pana.json
 
 # Example build output
 example/out/
+*.exe
