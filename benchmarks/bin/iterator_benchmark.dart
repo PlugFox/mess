@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'dart:collection';
 import 'dart:typed_data';
 
@@ -35,7 +34,7 @@ void main() {
   ].map<({String name, double us})>(_measure).toList(growable: false)
         ..sort((a, b) => a.us.compareTo(b.us)))
       .map<String>((e) => 'Benchmark ${e.name}: ${e.us.toStringAsFixed(2)} us')
-      .forEach(print);
+      .forEach(print); // ignore: avoid_print
 }
 
 ({String name, double us}) _measure(BenchmarkBase benchmark) =>

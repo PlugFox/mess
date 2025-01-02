@@ -2,9 +2,9 @@ import 'dart:collection';
 
 import 'package:benchmark_harness/benchmark_harness.dart';
 
-// $ dart run benchmarks/map_benchmark.dart
+// $ dart run benchmarks/bin/map_benchmark.dart
 //
-// $ dart compile exe -o benchmarks/map_benchmark.exe benchmarks/map_benchmark.dart
+// $ dart compile exe -o benchmarks/map_benchmark.exe benchmarks/bin/map_benchmark.dart
 // $ benchmarks/map_benchmark.exe
 void main() {
   (<BenchmarkBase>[
