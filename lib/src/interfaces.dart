@@ -67,6 +67,9 @@ abstract interface class IMess {
   /// The number of active entities in this manager.
   int get entitiesCount;
 
+  /// Check if the manager (world) is disposed.
+  bool get isDisposed;
+
   /// Create a new entity
   Entity createEntity();
 
@@ -95,13 +98,6 @@ abstract interface class IMess {
   List<Object> getComponents(Entity entity);
 
   /*
-
-  /// Create a new pool
-  IPool<C> createPool<C extends Object>();
-
-  /// Update all systems
-  void update(double deltaTime);
-
   Query createQuery(List<Type> types);
   */
 

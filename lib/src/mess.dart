@@ -242,6 +242,8 @@ class Mess implements IMess {
 
   @override
   Entity createEntity() {
+    assert(isDisposed, 'Manager is disposed');
+
     final int id;
     if (_recycledEntitiesCount > 0) {
       // Reuse recycled entity
@@ -262,6 +264,8 @@ class Mess implements IMess {
 
   @override
   void destroyEntity(Entity entity) {
+    assert(isDisposed, 'Manager is disposed');
+
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return;
     final offset = _getEntityOffset(id);
@@ -280,6 +284,8 @@ class Mess implements IMess {
 
   @override
   bool hasEntity(Entity entity) {
+    assert(isDisposed, 'Manager is disposed');
+
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return false;
     return _entities[_getEntityOffset(id)] > 0;
@@ -296,6 +302,8 @@ class Mess implements IMess {
 
   @override
   int componentsCount(Entity entity) {
+    assert(isDisposed, 'Manager is disposed');
+
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) {
       _throwAssertionError('Entity does not exist');
@@ -306,6 +314,8 @@ class Mess implements IMess {
 
   @override
   void upsertComponent<C extends Object>(Entity entity, C component) {
+    assert(isDisposed, 'Manager is disposed');
+
     final id = entity.id;
 
     if (C == Object)
@@ -338,6 +348,8 @@ class Mess implements IMess {
   /// Remove a component from an entity in the current manager (world) by type.
   @override
   void removeComponent<C extends Object>(Entity entity) {
+    assert(isDisposed, 'Manager is disposed');
+
     final id = entity.id;
 
     if (C == Object)
@@ -369,6 +381,8 @@ class Mess implements IMess {
 
   @override
   C getComponent<C extends Object>(Entity entity) {
+    assert(isDisposed, 'Manager is disposed');
+
     final pool = _poolsMap[C];
     if (pool == null) throw Exception('Component $C not registered');
     return pool[entity] as C;
@@ -376,6 +390,8 @@ class Mess implements IMess {
 
   @override
   List<Object> getComponents(Entity entity) {
+    assert(isDisposed, 'Manager is disposed');
+
     final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return const <Object>[];
     final offset = _getEntityOffset(id);
@@ -388,12 +404,20 @@ class Mess implements IMess {
 
   // --- Systems --- //
 
+  // --- Queries --- //
+
   // --- Triggers --- //
 
   // --- Dispose --- //
 
   @override
+  bool get isDisposed => _isDisposed;
+  bool _isDisposed = false;
+
+  @override
   void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
     _entities = Uint16List(0);
     _entitiesCount = 0;
     _recycledEntities = Uint32List(0);
