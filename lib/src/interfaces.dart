@@ -94,7 +94,7 @@ abstract interface class IMess {
 
   /// Get all entities ids in the current manager (world)
   /// Returns an empty list if no entities exist.
-  /// Thats a relatively expensive operation.
+  /// It itterates over all entities, thats a relatively expensive operation.
   /// Do not use it in performance critical code, better use queries.
   @visibleForTesting
   List<int> entities();
