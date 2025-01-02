@@ -26,6 +26,9 @@ abstract interface class Entity {
 
   /// Get components of an entity.
   List<Object> components();
+
+  /// Destroy entity.
+  void destroy();
 }
 
 /// {@template mess_pool}

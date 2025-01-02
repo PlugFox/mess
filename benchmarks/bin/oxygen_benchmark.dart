@@ -218,8 +218,7 @@ class _RemoveEntity$Oxygen$Benchmark extends BenchmarkBase {
         ..add<oxygen.ValueComponent<num>, num>(i)
         ..add<oxygen.ValueComponent<bool>, bool>(true)
         ..add<oxygen.ValueComponent<Symbol>, Symbol>(#symbol));
-    for (var i = 0; i < 100; i++)
-      world.entityManager.removeEntity(queue.removeLast());
+    for (var i = 0; i < 100; i++) queue.removeLast().dispose();
     world.entityManager.processRemovedEntities();
   }
 
@@ -257,7 +256,7 @@ class _RemoveEntity$Mess$Benchmark extends BenchmarkBase {
         ..upsert<num>(i)
         ..upsert<bool>(true)
         ..upsert<Symbol>(#symbol));
-    for (var i = 0; i < 100; i++) world.destroyEntity(queue.removeLast());
+    for (var i = 0; i < 100; i++) queue.removeLast().destroy();
   }
 
   @override

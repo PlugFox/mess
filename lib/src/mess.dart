@@ -41,6 +41,9 @@ final class _Entity implements Entity {
   List<Object> components() => _mess.getComponents(this);
 
   @override
+  void destroy() => _mess.destroyEntity(this);
+
+  @override
   int get hashCode => id.hashCode;
 
   @override

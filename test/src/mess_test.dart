@@ -237,4 +237,9 @@ class _EntityFake implements Entity {
   void upsert<C extends Object>(C component) {
     throw UnimplementedError();
   }
+
+  @override
+  void destroy() {
+    throw UnimplementedError();
+  }
 }
