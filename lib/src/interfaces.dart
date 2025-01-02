@@ -4,6 +4,17 @@ extension type const Entity(int id) {
   bool isAlive(IMess mess) => mess.hasEntity(this);
 }
 
+/// {@template mess_pool}
+/// Pool for components of a specific type.
+/// {@endtemplate}
+abstract interface class IMessPool<C extends Object> {
+  /// Pool ID.
+  int get id;
+
+  /// Type of components in this pool.
+  Type get type;
+}
+
 /// {@template mess}
 /// Mess: entity-component-system manager.
 /// Manage, create, and destroy entities.

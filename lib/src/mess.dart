@@ -1,37 +1,41 @@
+import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'interfaces.dart';
 
-/// {@template mess_pool}
-/// Pool for components of a specific type.
-/// {@endtemplate}
-abstract class MessPool<C extends Object> {
+class _MessPoolImpl<C extends Object> implements IMessPool<C> {
   /// Create a new [MessPool] instance
-  ///
-  /// {@macro mess_pool}
-  const MessPool({required this.id});
+  const _MessPoolImpl({required this.id});
 
   /// Pool ID.
+  @override
   final int id;
 
   /// Type of components in this pool.
+  @override
   Type get type => C;
 }
 
-class _MessPoolImpl<C extends Object> extends MessPool<C> {
-  const _MessPoolImpl({required super.id});
+class _MessPoolDisposed implements IMessPool<Object> {
+  const _MessPoolDisposed();
+
+  @override
+  int get id => -1;
+
+  @override
+  Type get type => Null;
 }
 
 /// {@macro mess}
 class Mess implements IMess {
-  /// Create a new [Mess] instance from ordered pools list.
+  /// Create a new [Mess] instance from ordered [IMessPool] pools list.
   /// Each pool must have a unique ID and type of components.
   /// Id of each pool must be in range 0..n.
   ///
   /// {@macro mess}
   Mess.pools(
-    List<MessPool> pools, {
+    List<IMessPool<Object>> pools, {
     int entitySize = 8,
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
@@ -39,10 +43,10 @@ class Mess implements IMess {
         _entities = Uint16List(math.max(entitiesCapacity, 64) * entitySize),
         _recycledEntities = Uint32List(math.max(recycledCapacity, 64)),
         poolsCount = pools.length,
-        _poolsMap = <Type, MessPool<Object>>{
+        _poolsMap = HashMap<Type, IMessPool<Object>>.of({
           for (final pool in pools) pool.type: pool,
-        },
-        _pools = List<MessPool<Object>>.unmodifiable(pools),
+        }),
+        _pools = List<IMessPool<Object>>.from(pools, growable: false),
         assert(() {
           final ids = <int>[];
           for (final pool in pools) ids.add(pool.id);
@@ -145,9 +149,9 @@ class Mess implements IMess {
   /// The number of pools in this manager.
   final int poolsCount;
 
-  final List<MessPool> _pools;
+  final List<IMessPool> _pools;
 
-  final Map<Type, MessPool> _poolsMap;
+  final Map<Type, IMessPool> _poolsMap;
 
   @override
   int componentsCount(Entity entity) {
@@ -227,10 +231,10 @@ class Mess implements IMess {
   void dispose() {
     _entities = Uint16List(0);
     _recycledEntities = Uint32List(0);
-    const emptyPool = _MessPoolImpl<Object>(id: 0);
+    const fakePool = _MessPoolDisposed();
     for (var i = 0; i < _pools.length; i++) {
-      _poolsMap[_pools[i].type] = emptyPool;
-      _pools[i] = emptyPool;
+      _poolsMap[_pools[i].type] = fakePool;
+      _pools[i] = fakePool;
     }
   }
 }
