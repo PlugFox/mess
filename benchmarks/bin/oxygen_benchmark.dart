@@ -5,17 +5,17 @@ import 'package:mess/mess.dart' as mess;
 import 'package:oxygen/oxygen.dart' as oxygen;
 
 /*
-Create 100 entities:
-Benchmark CreateEntity#Mess: 1018.85 us
-Benchmark CreateEntity#Oxygen: 1822.54 us
+Create 10000 entities:
+Benchmark CreateEntity#Mess: 168.66 us
+Benchmark CreateEntity#Oxygen: 12227.98 us
 
 Create and remove 100 entities:
-Benchmark RemoveEntity#Mess: 108.36 us
-Benchmark RemoveEntity#Oxygen: 1550.40 us
+Benchmark RemoveEntity#Mess: 101.63 us
+Benchmark RemoveEntity#Oxygen: 1438.60 us
 
 Get components for 100 entities:
-Benchmark GetComponent#Mess: 38.71 us
-Benchmark GetComponent#Oxygen: 50.59 us
+Benchmark GetComponent#Mess: 40.82 us
+Benchmark GetComponent#Oxygen: 47.44 us
 */
 
 // $ dart run benchmarks/bin/oxygen_benchmark.dart
@@ -29,14 +29,26 @@ void main() {
     ..writeln()
     ..writeln(title);
 
-  void measure(List<BenchmarkBase> benchmarks) => (benchmarks
-          .map<({String name, double us})>(_measure)
-          .toList(growable: false)
-        ..sort((a, b) => a.us.compareTo(b.us)))
-      .map<String>((e) => 'Benchmark ${e.name}: ${e.us.toStringAsFixed(2)} us')
-      .forEach(buffer.writeln);
+  void measure(List<BenchmarkBase> benchmarks) {
+    final results = benchmarks
+        .map<({String name, double us})>(_measure)
+        .toList(growable: false)
+      ..sort((a, b) => a.us.compareTo(b.us));
+    results
+        .map<String>(
+            (e) => 'Benchmark ${e.name}: ${e.us.toStringAsFixed(2)} us')
+        .forEach(buffer.writeln);
+    final ratio = results.last.us / results.first.us;
+    buffer.writeln('Ratio: ${ratio.toStringAsFixed(2)}');
+  }
 
-  dvd('Create 100 entities:');
+  dvd('Create World:');
+  measure(<BenchmarkBase>[
+    _CreateWorld$Oxygen$Benchmark(),
+    _CreateWorld$Mess$Benchmark(),
+  ]);
+
+  dvd('Create 1000 entities:');
   measure(<BenchmarkBase>[
     _CreateEntity$Oxygen$Benchmark(),
     _CreateEntity$Mess$Benchmark(),
@@ -66,17 +78,14 @@ void main() {
 ({String name, double us}) _measure(BenchmarkBase benchmark) =>
     (name: benchmark.name, us: benchmark.measure());
 
-// --- Create entity --- //
+// --- Create world --- //
 
-class _CreateEntity$Oxygen$Benchmark extends BenchmarkBase {
-  _CreateEntity$Oxygen$Benchmark() : super('CreateEntity#Oxygen');
-
-  late oxygen.World world;
+class _CreateWorld$Oxygen$Benchmark extends BenchmarkBase {
+  _CreateWorld$Oxygen$Benchmark() : super('CreateWorld#Oxygen');
 
   @override
-  void setup() {
-    super.setup();
-    world = oxygen.World()
+  void run() {
+    final world = oxygen.World()
       ..registerComponent<oxygen.ValueComponent<int>, int>(
           oxygen.ValueComponent<int>.new)
       ..registerComponent<oxygen.ValueComponent<String>, String>(
@@ -87,12 +96,49 @@ class _CreateEntity$Oxygen$Benchmark extends BenchmarkBase {
           oxygen.ValueComponent<bool>.new)
       ..registerComponent<oxygen.ValueComponent<Symbol>, Symbol>(
           oxygen.ValueComponent<Symbol>.new);
+    if (world.entities.isNotEmpty)
+      throw StateError('We should have no entities');
   }
+}
+
+class _CreateWorld$Mess$Benchmark extends BenchmarkBase {
+  _CreateWorld$Mess$Benchmark() : super('CreateWorld#Mess');
 
   @override
   void run() {
+    final world = (mess.PoolRegistry()
+          ..register<int>()
+          ..register<String>()
+          ..register<num>()
+          ..register<bool>()
+          ..register<Symbol>())
+        .createMess();
+    if (world.entitiesCount != 0)
+      throw StateError('We should have no entities');
+  }
+}
+
+// --- Create entity --- //
+
+class _CreateEntity$Oxygen$Benchmark extends BenchmarkBase {
+  _CreateEntity$Oxygen$Benchmark() : super('CreateEntity#Oxygen');
+
+  @override
+  void run() {
+    final world = oxygen.World()
+      ..registerComponent<oxygen.ValueComponent<int>, int>(
+          oxygen.ValueComponent<int>.new)
+      ..registerComponent<oxygen.ValueComponent<String>, String>(
+          oxygen.ValueComponent<String>.new)
+      ..registerComponent<oxygen.ValueComponent<num>, num>(
+          oxygen.ValueComponent<num>.new)
+      ..registerComponent<oxygen.ValueComponent<bool>, bool>(
+          oxygen.ValueComponent<bool>.new)
+      ..registerComponent<oxygen.ValueComponent<Symbol>, Symbol>(
+          oxygen.ValueComponent<Symbol>.new);
+
     oxygen.Entity? entity;
-    for (var i = 0; i < 100; i++)
+    for (var i = 0; i < 1000; i++)
       entity = world.createEntity()
         ..add<oxygen.ValueComponent<int>, int>(0)
         ..add<oxygen.ValueComponent<String>, String>('string')
@@ -107,24 +153,17 @@ class _CreateEntity$Oxygen$Benchmark extends BenchmarkBase {
 class _CreateEntity$Mess$Benchmark extends BenchmarkBase {
   _CreateEntity$Mess$Benchmark() : super('CreateEntity#Mess');
 
-  late mess.Mess world;
-
   @override
-  void setup() {
-    super.setup();
-    world = (mess.PoolRegistry()
+  void run() {
+    final world = (mess.PoolRegistry()
           ..register<int>()
           ..register<String>()
           ..register<num>()
           ..register<bool>()
           ..register<Symbol>())
         .createMess();
-  }
-
-  @override
-  void run() {
     int? entity;
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i < 1000; i++) {
       entity = world.createEntity();
       world
         ..upsertComponent<int>(entity, 0)
@@ -134,12 +173,6 @@ class _CreateEntity$Mess$Benchmark extends BenchmarkBase {
         ..upsertComponent<Symbol>(entity, #symbol);
     }
     if (entity == null) throw StateError('Incorrect entity id: $entity');
-  }
-
-  @override
-  void teardown() {
-    super.teardown();
-    world.dispose();
   }
 }
 
