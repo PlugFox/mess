@@ -28,8 +28,8 @@ class Mess implements IMess {
   /// Create a new [Mess] instance
   ///
   /// {@macro mess}
-  Mess({
-    required Set<Type> components,
+  Mess(
+    Set<Type> components, {
     int entitySize = 8,
     int entitiesCapacity = 512,
     int recycledCapacity = 512,
@@ -147,12 +147,16 @@ class Mess implements IMess {
   @override
   void setComponent<C extends Object>(Entity entity, C component) {
     final id = entity.id;
-    if (C == Object) return; // An implemented Component was expected
-    if (id < 0 || id >= _entitiesCount) return; // Entity does not exist
+    if (C == Object)
+      return _throwAssertionError('An implemented Component was expected');
+    if (id < 0 || id >= _entitiesCount)
+      return _throwAssertionError('Entity does not exist');
     final offset = _getEntityOffset(id); // Entity offset
     final componentsCount = _entities[offset]; // Number of current components
-    if (componentsCount < 1) return; // Entity does not exist
-    if (componentsCount + 1 >= _entitySize) return; // No more space
+    if (componentsCount < 1)
+      return _throwAssertionError('Entity does not exist');
+    if (componentsCount + 1 >= _entitySize)
+      return _throwAssertionError('No more space for components');
     _entities[offset] = componentsCount + 1; // Increase components count
     //_entities[offset + 1 + componentsCount] = component;
 
@@ -219,4 +223,9 @@ Uint32List _resizeUint32List(Uint32List array, int newCapacity) {
   );
   final newEntities = Uint32List(newCapacity)..setAll(0, array);
   return newEntities;
+}
+
+/// A helper function to throw a debug error.
+void _throwAssertionError(String message) {
+  assert(false, message);
 }
