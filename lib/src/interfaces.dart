@@ -1,7 +1,26 @@
-/// Unique entity type.
-extension type const Entity(int id) {
+/// Entity
+abstract interface class Entity {
+  /// Entity ID.
+  int get id;
+
   /// Check if an entity is alive.
-  bool isAlive(IMess mess) => mess.hasEntity(this);
+  bool isAlive();
+
+  /// Get components count of an entity.
+  int get count;
+
+  /// Add a component to an entity.
+  /// If entity does not exist, we just skip the operation.
+  void upsert<C extends Object>(C component);
+
+  /// Remove a component from an entity.
+  void remove<C extends Object>();
+
+  /// Get component by type.
+  C get<C extends Object>();
+
+  /// Get components of an entity.
+  List<Object> components();
 }
 
 /// {@template mess_pool}
@@ -13,6 +32,22 @@ abstract interface class IMessPool<C extends Object> {
 
   /// Type of components in this pool.
   Type get type;
+
+  /// Check if pool contains entity.
+  bool contains(Entity entity);
+
+  /// Remove entity from pool.
+  /// Returns the removed component or null if entity does not exist.
+  C? remove(Entity entity);
+
+  /// Get component by entity.
+  /// Throws [Exception] if entity does not exist.
+  C operator [](Entity entity);
+
+  /// Set component for entity.
+  void operator []=(Entity entity, C component);
+
+  // void copy(Entity from, Entity to);
 }
 
 /// {@template mess}
@@ -44,16 +79,17 @@ abstract interface class IMess {
   /// Add a component to an entity in the current manager (world)
   /// If entity does not exist, we just skip the operation.
   /// If the entity already has that component it will just return.
-  void upsert<C extends Object>(Entity entity, C component);
+  void upsertComponent<C extends Object>(Entity entity, C component);
 
-  /* /// Add multiple components to an entity
-  /// If entity does not exist, we just skip the operation.
-  /// If the entity already has that component it will just skip it.
-  void setComponents(Entity entity, Map<Type, Object> components); */
+  /// Remove a component from an entity in the current manager (world) by type.
+  void removeComponent<C extends Object>(Entity entity);
 
   /// Components count of an entity.
   /// Returns 0 if entity does not exist.
   int componentsCount(Entity entity);
+
+  /// Get component by type.
+  C getComponent<C extends Object>(Entity entity);
 
   /// Get components of an entity.
   List<Object> getComponents(Entity entity);
