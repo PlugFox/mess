@@ -60,7 +60,10 @@ abstract interface class IMess {
 
   /// Create a new entity and return its ID.
   /// This is a more efficient way to work with entities.
+  ///
   /// But you can wrap it in a `Entity` view for more convenience.
+  /// You can create your own extension method or type extension for that.
+  /// It will be a bit less efficient, but more convenient.
   int createEntity();
 
   /// Get all entities ids in the current manager (world)
