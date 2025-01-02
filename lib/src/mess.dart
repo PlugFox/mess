@@ -289,11 +289,12 @@ class Mess implements IMess {
     // If entity is already destroyed
     if (_entities[offset] == 0) return;
 
-    // TODO(plugfox): Delete all components of the entity
-    // Mike Matiunin <plugfox@gmail.com>, 02 January 2025
+    // Remove all components from entity
+    for (var i = 0; i < _entities[offset]; i++)
+      _poolsList[_entities[offset + 1 + i]].remove(entity);
 
     // Recycle entity
-    _entities[offset] = 0; // Entity does not exist
+    _entities[offset] = 0; // Mark entity as destroyed
     if (_recycledEntitiesCount == _recycledEntities.length) {
       // Resize recycled entities array
       final newSize = _recycledEntitiesCount << 1;
@@ -318,7 +319,7 @@ class Mess implements IMess {
   final int poolsCount;
 
   /// Map of component types to their IDs.
-  /// Allow to get the component ID by type.
+  /// Allow to get the component index by its [Type].
   final Map<Type, int> _types;
 
   /// List of pools in this manager.
