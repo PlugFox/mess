@@ -17,6 +17,10 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   @override
   Type get type => C;
 
+  // TODO(plugfox): Create a new implementation with dense and sparse arrays
+  // instead of HashMap for better performance and memory usage.
+  // Mike Matiunin <plugfox@gmail.com>, 03 January 2025
+
   /* final List<C> _denseItems;
   final List<int> _sparseItems;
   final int _denseItemsCount;
