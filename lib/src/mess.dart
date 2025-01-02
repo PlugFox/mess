@@ -209,15 +209,24 @@ class Mess implements IMess {
         _types = HashMap<Type, int>.of({
           for (var i = 0; i < pools.length; i++) pools[i].type: i,
         }),
-        _masks = HashMap<int, Mask>(),
+        _masks = Uint64List(math.max(entitiesCapacity, 64)),
+        assert(
+          entitiesCapacity > 63 && recycledCapacity > 63,
+          'Capacity must be 64 or greater',
+        ),
         assert(
           pools.map((e) => e.type).toSet().length == pools.length,
-          'Duplicate pool type',
+          'Duplicate pool type found',
         ),
         assert(
           entitySize > 1,
           'Entity size must be greater than 1 '
           'or you will not be able to add components',
+        ),
+        assert(
+          entitySize <= 65,
+          'Entity size must be less than 65 '
+          'or you will get an mask overflow',
         );
 
   // --- Entities --- //
@@ -278,6 +287,9 @@ class Mess implements IMess {
         final newSize = _entitiesCount << 1;
         _entities = _resizeUint32List(_entities, newSize * _entitySize);
 
+        // Resize masks array
+        _masks = _resizeUint64List(_masks, newSize);
+
         // Resize refs array
         /* final refs = _refs;
         _refs = List<_Entity>.filled(
@@ -327,7 +339,7 @@ class Mess implements IMess {
     for (var i = 1; i < _entities[offset]; i++)
       _poolsList[_entities[offset + i]].remove(entity);
 
-    _masks.remove(id); // Remove entity mask
+    _masks[id] = const Mask.empty(); // Clear entity mask
 
     // Recycle entity
     _entities[offset] = 0; // Mark entity as destroyed
@@ -430,7 +442,7 @@ class Mess implements IMess {
     if (pool == null || pool.remove(entity) == null) return;
 
     // Update mask
-    _masks[id] = _masks[id]!.clearBit(_types[C]!);
+    _masks[id] = Mask(_masks[id]).clearBit(_types[C]!);
 
     // Decrease components count
     final dataCount = _entities[offset] - 1;
@@ -461,9 +473,11 @@ class Mess implements IMess {
   bool hasComponent<C extends Object>(Entity entity) {
     assert(isAlive, 'Manager is disposed');
 
-    final mask = _masks[entity.id];
+    if (entity.id < 0 || entity.id >= _entitiesCount) return false;
+
+    final mask = Mask(_masks[entity.id]);
     final index = _types[C];
-    if (mask == null || index == null) return false;
+    if (index == null) return false;
     return mask.hasIndex(index);
   }
 
@@ -486,9 +500,8 @@ class Mess implements IMess {
   // --- Queries --- //
 
   /// Map of entity mask.
-  /// key - entity ID, value - entity mask.
   /// Allow to check if entity has specified components.
-  final Map<int, Mask> _masks;
+  Uint64List _masks;
 
   /// Map of queries by component mask.
   final Map<Mask, _MessQuery> _queries;
@@ -553,7 +566,7 @@ class Mess implements IMess {
     _entities = _recycledEntities = Uint32List(0);
     _entitiesCount = _recycledEntitiesCount = 0;
     //_refs = const <_Entity>[];
-    _masks.clear();
+    _masks = Uint64List(0);
     _queries.clear();
     const fakePool = _MessPool$Disposed();
     for (var i = 0; i < _poolsList.length; i++) {
@@ -569,6 +582,15 @@ Uint32List _resizeUint32List(Uint32List array, int newCapacity) {
     'New capacity must be greater than current capacity',
   );
   final newEntities = Uint32List(newCapacity)..setAll(0, array);
+  return newEntities;
+}
+
+Uint64List _resizeUint64List(Uint64List array, int newCapacity) {
+  assert(
+    newCapacity > array.length,
+    'New capacity must be greater than current capacity',
+  );
+  final newEntities = Uint64List(newCapacity)..setAll(0, array);
   return newEntities;
 }
 

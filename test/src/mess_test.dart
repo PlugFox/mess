@@ -132,11 +132,11 @@ void main() => group(
           expect(
             mess.entities(),
             allOf([
-              isA<List<Entity>>(),
+              isA<List<int>>(),
               hasLength(1920),
               everyElement(allOf([
-                isA<Entity>(),
-                predicate<Entity>((e) => ids.contains(e.id) && e.id < 1920),
+                isA<int>(),
+                predicate<int>((id) => ids.contains(id) && id < 1920),
               ])),
             ]),
           );
@@ -163,12 +163,12 @@ void main() => group(
           expect(
             mess.entities(),
             allOf([
-              isA<List<Entity>>(),
+              isA<List<int>>(),
               hasLength(1920 - toDestroy.length),
               hasLength(ids.length),
               everyElement(allOf([
-                isA<Entity>(),
-                predicate<Entity>((e) => ids.contains(e.id) && e.id < 1920),
+                isA<int>(),
+                predicate<int>((id) => ids.contains(id) && id < 1920),
               ])),
             ]),
           );
@@ -185,10 +185,10 @@ void main() => group(
           expect(
             mess.entities(),
             allOf([
-              isA<List<Entity>>(),
+              isA<List<int>>(),
               hasLength(ids.length),
-              everyElement(predicate<Entity>(
-                (e) => ids.contains(e.id) && e.id < 1920,
+              everyElement(predicate<int>(
+                (id) => ids.contains(id) && id < 1920,
               )),
             ]),
           );
