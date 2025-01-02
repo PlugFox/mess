@@ -2,58 +2,8 @@ import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:meta/meta.dart';
-
 import 'interfaces.dart';
 import 'mask.dart';
-
-// --- Entity --- //
-
-@immutable
-final class _Entity implements Entity {
-  const _Entity(this.id, this._mess);
-
-  @override
-  final int id;
-
-  final IMess _mess;
-
-  @override
-  bool isAlive() => _mess.hasEntity(this);
-
-  @override
-  int get count => _mess.componentsCount(this);
-
-  @override
-  void upsert<C extends Object>(C component) =>
-      _mess.upsertComponent(this, component);
-
-  @override
-  void remove<C extends Object>() => _mess.removeComponent<C>(this);
-
-  @override
-  C get<C extends Object>() => _mess.getComponent<C>(this);
-
-  @override
-  bool has<C extends Object>() => _mess.hasComponent<C>(this);
-
-  @override
-  List<Object> components() => _mess.getComponents(this);
-
-  @override
-  void destroy() => _mess.destroyEntity(this);
-
-  @override
-  int get hashCode => id.hashCode;
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _Entity && identical(_mess, other._mess) && id == other.id;
-
-  @override
-  String toString() => 'Entity{$id}';
-}
 
 // --- Pools implementations --- //
 
@@ -74,18 +24,17 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   final int _recycledItemsCount; */
 
   @override
-  bool contains(Entity entity) => _components.containsKey(entity.id);
+  bool contains(int entity) => _components.containsKey(entity);
 
   @override
-  C? remove(Entity entity) => _components.remove(entity.id);
+  C? remove(int entity) => _components.remove(entity);
 
   @override
-  C operator [](Entity entity) =>
-      _components[entity.id] ?? (throw Exception('Component not found'));
+  C operator [](int entity) =>
+      _components[entity] ?? (throw Exception('Component not found'));
 
   @override
-  void operator []=(Entity entity, C component) =>
-      _components[entity.id] = component;
+  void operator []=(int entity, C component) => _components[entity] = component;
 
   // Optionally, implement the copy method if needed in the future.
   // void copy(int from, int to) {
@@ -105,16 +54,16 @@ class _MessPool$Disposed implements IMessPool<Object> {
   static Never _throwDisposedError() => throw StateError('Pool is disposed');
 
   @override
-  bool contains(Entity entity) => _throwDisposedError();
+  bool contains(int entity) => _throwDisposedError();
 
   @override
-  void remove(Entity entity) => _throwDisposedError();
+  void remove(int entity) => _throwDisposedError();
 
   @override
-  Object operator [](Entity entity) => _throwDisposedError();
+  Object operator [](int entity) => _throwDisposedError();
 
   @override
-  void operator []=(Entity entity, Object component) => _throwDisposedError();
+  void operator []=(int entity, Object component) => _throwDisposedError();
 }
 
 // --- Pools registry / helper --- //
@@ -174,16 +123,16 @@ final class PoolRegistry {
 // --- Queries and Filters --- //
 
 class _MessQuery implements IMessQuery {
-  _MessQuery(this.components) : _entities = <_Entity>[];
+  _MessQuery(this.components) : _entities = <int>[];
 
   @override
   final Set<Type> components;
 
   /// Mutable list of entities with specified components.
-  final List<_Entity> _entities;
+  final List<int> _entities;
 
   @override
-  late final List<Entity> entities = UnmodifiableListView<Entity>(_entities);
+  late final List<int> entities = UnmodifiableListView<int>(_entities);
 }
 
 // --- MESS / Entity Manager --- //
@@ -277,7 +226,7 @@ class Mess implements IMess {
   int _getEntityOffset(int id) => id * _entitySize;
 
   @override
-  Entity createEntity() {
+  int createEntity() {
     assert(isAlive, 'Manager is disposed');
     final int id;
     if (_recycledEntitiesCount > 0) {
@@ -309,8 +258,7 @@ class Mess implements IMess {
     _entities[_getEntityOffset(id)] = 1; // Entity exists with 0 components
     _masks[id] = const Mask.empty();
     //_trigger(ENTITY_CREATED, entity);
-    return _Entity(id, this);
-    //return _refs[id];
+    return id;
   }
 
   @override
@@ -329,10 +277,9 @@ class Mess implements IMess {
   }
 
   @override
-  void destroyEntity(Entity entity) {
+  void destroyEntity(int id) {
     assert(isAlive, 'Manager is disposed');
 
-    final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return;
     final offset = _getEntityOffset(id);
     // If entity is already destroyed
@@ -340,7 +287,7 @@ class Mess implements IMess {
 
     // Remove all components from entity
     for (var i = 1; i < _entities[offset]; i++)
-      _poolsList[_entities[offset + i]].remove(entity);
+      _poolsList[_entities[offset + i]].remove(id);
 
     _masks[id] = const Mask.empty(); // Clear entity mask
 
@@ -356,10 +303,9 @@ class Mess implements IMess {
   }
 
   @override
-  bool hasEntity(Entity entity) {
+  bool hasEntity(int id) {
     assert(isAlive, 'Manager is disposed');
 
-    final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return false;
     return _entities[_getEntityOffset(id)] > 0;
   }
@@ -382,10 +328,9 @@ class Mess implements IMess {
   final Map<Type, IMessPool> _poolsMap;
 
   @override
-  int componentsCount(Entity entity) {
+  int componentsCount(int id) {
     assert(isAlive, 'Manager is disposed');
 
-    final id = entity.id;
     if (id < 0 || id >= _entitiesCount) {
       _throwAssertionError('Entity does not exist');
       return 0;
@@ -394,10 +339,8 @@ class Mess implements IMess {
   }
 
   @override
-  void upsertComponent<C extends Object>(Entity entity, C component) {
+  void upsertComponent<C extends Object>(int id, C component) {
     assert(isAlive, 'Manager is disposed');
-
-    final id = entity.id;
 
     if (C == Object)
       return _throwAssertionError('An implemented Component was expected');
@@ -415,7 +358,7 @@ class Mess implements IMess {
       return _throwAssertionError('Component $C not registered');
 
     // Check if component already exists in entity
-    if (!pool.contains(entity)) {
+    if (!pool.contains(id)) {
       if (componentsCount + 1 >= _entitySize)
         return _throwAssertionError('No more space for components');
       _entities[offset] = componentsCount + 1; // Increase components count
@@ -423,15 +366,13 @@ class Mess implements IMess {
     }
 
     // Add component to pool
-    pool[entity] = component;
+    pool[id] = component;
   }
 
   /// Remove a component from an entity in the current manager (world) by type.
   @override
-  void removeComponent<C extends Object>(Entity entity) {
+  void removeComponent<C extends Object>(int id) {
     assert(isAlive, 'Manager is disposed');
-
-    final id = entity.id;
 
     if (C == Object)
       return _throwAssertionError('An implemented Component was expected');
@@ -442,7 +383,7 @@ class Mess implements IMess {
     final offset = _getEntityOffset(id); // Entity offset
 
     final pool = _poolsMap[C];
-    if (pool == null || pool.remove(entity) == null) return;
+    if (pool == null || pool.remove(id) == null) return;
 
     // Update mask
     _masks[id] = Mask(_masks[id]).clearBit(_types[C]!);
@@ -464,36 +405,35 @@ class Mess implements IMess {
   }
 
   @override
-  C getComponent<C extends Object>(Entity entity) {
+  C getComponent<C extends Object>(int id) {
     assert(isAlive, 'Manager is disposed');
 
     final pool = _poolsMap[C];
     if (pool == null) throw Exception('Component $C not registered');
-    return pool[entity] as C;
+    return pool[id] as C;
   }
 
   @override
-  bool hasComponent<C extends Object>(Entity entity) {
+  bool hasComponent<C extends Object>(int id) {
     assert(isAlive, 'Manager is disposed');
 
-    if (entity.id < 0 || entity.id >= _entitiesCount) return false;
+    if (id < 0 || id >= _entitiesCount) return false;
 
-    final mask = Mask(_masks[entity.id]);
+    final mask = Mask(_masks[id]);
     final index = _types[C];
     if (index == null) return false;
     return mask.hasIndex(index);
   }
 
   @override
-  List<Object> getComponents(Entity entity) {
+  List<Object> getComponents(int id) {
     assert(isAlive, 'Manager is disposed');
 
-    final id = entity.id;
     if (id < 0 || id >= _entitiesCount) return const <Object>[];
     final offset = _getEntityOffset(id);
     return List<Object>.generate(
       _entities[offset] - 1,
-      (i) => _poolsList[_entities[offset + 1 + i]][entity],
+      (i) => _poolsList[_entities[offset + 1 + i]][id],
       growable: false,
     );
   }

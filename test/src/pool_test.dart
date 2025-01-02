@@ -131,14 +131,14 @@ class _MessPool$Fake<T extends Object> implements IMessPool<T> {
   static Never _throwFakeError() => throw StateError('Fake');
 
   @override
-  bool contains(Entity entity) => _throwFakeError();
+  bool contains(int id) => _throwFakeError();
 
   @override
-  T? remove(Entity entity) => _throwFakeError();
+  T? remove(int id) => _throwFakeError();
 
   @override
-  T operator [](Entity entity) => _throwFakeError();
+  T operator [](int id) => _throwFakeError();
 
   @override
-  void operator []=(Entity entity, T component) => _throwFakeError();
+  void operator []=(int id, T component) => _throwFakeError();
 }

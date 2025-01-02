@@ -118,16 +118,17 @@ class _CreateEntity$Mess$Benchmark extends BenchmarkBase {
 
   @override
   void run() {
-    mess.Entity? entity;
-    for (var i = 0; i < 100; i++)
-      entity = world.createEntity()
-        ..upsert<int>(0)
-        ..upsert<String>('string')
-        ..upsert<num>(1)
-        ..upsert<bool>(true)
-        ..upsert<Symbol>(#symbol);
-    if (entity?.id == null)
-      throw StateError('Incorrect entity id: ${entity?.id}');
+    int? entity;
+    for (var i = 0; i < 100; i++) {
+      entity = world.createEntity();
+      world
+        ..upsertComponent<int>(entity, 0)
+        ..upsertComponent<String>(entity, 'string')
+        ..upsertComponent<num>(entity, 1)
+        ..upsertComponent<bool>(entity, true)
+        ..upsertComponent<Symbol>(entity, #symbol);
+    }
+    if (entity == null) throw StateError('Incorrect entity id: $entity');
   }
 
   @override
@@ -233,7 +234,7 @@ class _RemoveEntity$Mess$Benchmark extends BenchmarkBase {
   _RemoveEntity$Mess$Benchmark() : super('RemoveEntity#Mess');
 
   late mess.Mess world;
-  final queue = Queue<mess.Entity>();
+  final queue = Queue<int>();
 
   @override
   void setup() {
@@ -249,14 +250,17 @@ class _RemoveEntity$Mess$Benchmark extends BenchmarkBase {
 
   @override
   void run() {
-    for (var i = 0; i < 100; i++)
-      queue.add(world.createEntity()
-        ..upsert<int>(i)
-        ..upsert<String>('string')
-        ..upsert<num>(i)
-        ..upsert<bool>(true)
-        ..upsert<Symbol>(#symbol));
-    for (var i = 0; i < 100; i++) queue.removeLast().destroy();
+    for (var i = 0; i < 100; i++) {
+      final entity = world.createEntity();
+      world
+        ..upsertComponent<int>(entity, i)
+        ..upsertComponent<String>(entity, 'string')
+        ..upsertComponent<num>(entity, i)
+        ..upsertComponent<bool>(entity, true)
+        ..upsertComponent<Symbol>(entity, #symbol);
+      queue.add(entity);
+    }
+    for (var i = 0; i < 100; i++) world.destroyEntity(queue.removeLast());
   }
 
   @override
@@ -314,7 +318,7 @@ class _GetComponent$Mess$Benchmark extends BenchmarkBase {
   _GetComponent$Mess$Benchmark() : super('GetComponent#Mess');
 
   late mess.Mess world;
-  final queue = Queue<mess.Entity>();
+  final queue = Queue<int>();
 
   @override
   void setup() {
@@ -325,21 +329,24 @@ class _GetComponent$Mess$Benchmark extends BenchmarkBase {
           ..register<num>()
           ..register<bool>())
         .createMess();
-    for (var i = 0; i < 100; i++)
-      queue.add(world.createEntity()
-        ..upsert<int>(0)
-        ..upsert<String>('string')
-        ..upsert<num>(1)
-        ..upsert<bool>(true));
+    for (var i = 0; i < 100; i++) {
+      final entity = world.createEntity();
+      world
+        ..upsertComponent<int>(entity, 0)
+        ..upsertComponent<String>(entity, 'string')
+        ..upsertComponent<num>(entity, 1)
+        ..upsertComponent<bool>(entity, true);
+      queue.add(entity);
+    }
   }
 
   @override
   void run() {
     for (final e in queue) {
-      final intValue = e.get<int>();
-      final stringValue = e.get<String>();
-      final numValue = e.get<num>();
-      final boolValue = e.get<bool>();
+      final intValue = world.getComponent<int>(e);
+      final stringValue = world.getComponent<String>(e);
+      final numValue = world.getComponent<num>(e);
+      final boolValue = world.getComponent<bool>(e);
       if (intValue != 0 ||
           stringValue != 'string' ||
           numValue != 1 ||

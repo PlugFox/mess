@@ -1,36 +1,5 @@
 import 'package:meta/meta.dart';
 
-/// Entity
-abstract interface class Entity {
-  /// Entity ID.
-  int get id;
-
-  /// Check if an entity is alive.
-  bool isAlive();
-
-  /// Get components count of an entity.
-  int get count;
-
-  /// Add a component to an entity.
-  /// If entity does not exist, we just skip the operation.
-  void upsert<C extends Object>(C component);
-
-  /// Remove a component from an entity.
-  void remove<C extends Object>();
-
-  /// Get component by type.
-  C get<C extends Object>();
-
-  /// Check if entity has a component.
-  bool has<C extends Object>();
-
-  /// Get components of an entity.
-  List<Object> components();
-
-  /// Destroy entity.
-  void destroy();
-}
-
 /// {@template mess_pool}
 /// Pool for components of a specific type.
 /// {@endtemplate}
@@ -39,20 +8,20 @@ abstract interface class IMessPool<C extends Object> {
   Type get type;
 
   /// Check if pool contains entity.
-  bool contains(Entity entity);
+  bool contains(int entity);
 
   /// Remove entity from pool.
   /// Returns the removed component or null if entity does not exist.
-  C? remove(Entity entity);
+  C? remove(int entity);
 
   /// Get component by entity.
   /// Throws [Exception] if entity does not exist.
-  C operator [](Entity entity);
+  C operator [](int entity);
 
   /// Set component for entity.
-  void operator []=(Entity entity, C component);
+  void operator []=(int entity, C component);
 
-  // void copy(Entity from, Entity to);
+  // void copy(int from, int to);
 }
 
 /// {@template mess_query}
@@ -63,7 +32,7 @@ abstract interface class IMessQuery {
   Set<Type> get components;
 
   /// Immutable view of entities with specified components.
-  List<Entity> get entities;
+  List<int> get entities;
 }
 
 /// {@template mess}
@@ -86,11 +55,13 @@ abstract interface class IMess {
   /// Check if the manager (world) is alive and running (not disposed).
   bool get isAlive;
 
-  /// Check if the manager (world) is disposed.
+  /// Check if the manager (world) is disposed.upsertComponent
   bool get isDisposed;
 
-  /// Create a new entity
-  Entity createEntity();
+  /// Create a new entity and return its ID.
+  /// This is a more efficient way to work with entities.
+  /// But you can wrap it in a `Entity` view for more convenience.
+  int createEntity();
 
   /// Get all entities ids in the current manager (world)
   /// Returns an empty list if no entities exist.
@@ -100,31 +71,31 @@ abstract interface class IMess {
   List<int> entities();
 
   /// Remove an entity from the current manager (world)
-  void destroyEntity(Entity entity);
+  void destroyEntity(int id);
 
   /// Check if an entity is alive.
-  bool hasEntity(Entity entity);
+  bool hasEntity(int id);
 
   /// Add a component to an entity in the current manager (world)
   /// If entity does not exist, we just skip the operation.
   /// If the entity already has that component it will just return.
-  void upsertComponent<C extends Object>(Entity entity, C component);
+  void upsertComponent<C extends Object>(int id, C component);
 
   /// Remove a component from an entity in the current manager (world) by type.
-  void removeComponent<C extends Object>(Entity entity);
+  void removeComponent<C extends Object>(int id);
 
   /// Components count of an entity.
   /// Returns 0 if entity does not exist.
-  int componentsCount(Entity entity);
+  int componentsCount(int id);
 
   /// Get component by type.
-  C getComponent<C extends Object>(Entity entity);
+  C getComponent<C extends Object>(int id);
 
   /// Check if entity has a component.
-  bool hasComponent<C extends Object>(Entity entity);
+  bool hasComponent<C extends Object>(int id);
 
   /// Get components of an entity.
-  List<Object> getComponents(Entity entity);
+  List<Object> getComponents(int id);
 
   /// Create a new query for entities with specific components.
   /// Provide a more rare component first for better performance.
