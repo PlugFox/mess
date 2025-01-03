@@ -67,12 +67,6 @@ void main() {
     _CreateEntity$Mess$Benchmark(),
   ]);
 
-  /* dvd('Retrieve all entities:');
-  measure(<BenchmarkBase>[
-    _GetEntities$Oxygen$Benchmark(),
-    _GetEntities$Mess$Benchmark(),
-  ]); */
-
   dvd('Create and remove 100 entities:');
   measure(<BenchmarkBase>[
     _RemoveEntity$Oxygen$Benchmark(),
@@ -192,54 +186,6 @@ class _CreateEntity$Mess$Benchmark extends BenchmarkBase {
         ..upsertComponent<Symbol>(entity, #symbol);
     }
     if (entity == null) throw StateError('Incorrect entity id: $entity');
-  }
-}
-
-// --- Get all entities --- //
-
-class _GetEntities$Oxygen$Benchmark extends BenchmarkBase {
-  _GetEntities$Oxygen$Benchmark() : super('GetEntities#Oxygen');
-
-  late oxygen.World world;
-
-  @override
-  void setup() {
-    super.setup();
-    world = oxygen.World();
-    for (var i = 0; i < 10; i++) world.createEntity();
-  }
-
-  @override
-  void run() {
-    final entities = world.entities;
-    if (entities.length != 10)
-      throw StateError('Incorrect entities length: ${entities.length}');
-  }
-}
-
-class _GetEntities$Mess$Benchmark extends BenchmarkBase {
-  _GetEntities$Mess$Benchmark() : super('GetEntities#Mess');
-
-  late mess.Mess world;
-
-  @override
-  void setup() {
-    super.setup();
-    world = mess.Mess.pools([]);
-    for (var i = 0; i < 10; i++) world.createEntity();
-  }
-
-  @override
-  void run() {
-    final entities = world.entities();
-    if (entities.length != 10)
-      throw StateError('Incorrect entities length: ${entities.length}');
-  }
-
-  @override
-  void teardown() {
-    super.teardown();
-    world.dispose();
   }
 }
 
