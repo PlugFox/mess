@@ -6,24 +6,24 @@ import 'package:oxygen/oxygen.dart' as oxygen;
 
 /*
 Create World:
-Benchmark CreateWorld#Oxygen: 9.23 us
-Benchmark CreateWorld#Mess: 37.13 us
-Ratio: 4.02
+Benchmark CreateWorld#Oxygen: 9.08 us
+Benchmark CreateWorld#Mess: 36.62 us
+Ratio: 4.03
 
 Create 1000 entities:
-Benchmark CreateEntity#Mess: 1035.33 us
-Benchmark CreateEntity#Oxygen: 5376.05 us
-Ratio: 5.19
+Benchmark CreateEntity#Mess: 1145.11 us
+Benchmark CreateEntity#Oxygen: 5410.84 us
+Ratio: 4.73
 
 Create and remove 100 entities:
-Benchmark RemoveEntity#Mess: 82.21 us
-Benchmark RemoveEntity#Oxygen: 890.72 us
-Ratio: 10.83
+Benchmark RemoveEntity#Mess: 95.69 us
+Benchmark RemoveEntity#Oxygen: 909.58 us
+Ratio: 9.51
 
 Get components for 100 entities:
-Benchmark GetComponent#Mess: 31.63 us
-Benchmark GetComponent#Oxygen: 38.46 us
-Ratio: 1.22
+Benchmark GetComponent#Mess: 33.65 us
+Benchmark GetComponent#Oxygen: 39.26 us
+Ratio: 1.17
 */
 
 // $ dart run benchmarks/bin/oxygen_benchmark.dart
@@ -339,9 +339,9 @@ class _GetComponent$Oxygen$Benchmark extends BenchmarkBase {
           oxygen.ValueComponent<bool>.new);
     for (var i = 0; i < 100; i++)
       queue.add(world.createEntity()
-        ..add<oxygen.ValueComponent<int>, int>(0)
+        ..add<oxygen.ValueComponent<int>, int>(i)
         ..add<oxygen.ValueComponent<String>, String>('string')
-        ..add<oxygen.ValueComponent<num>, num>(1)
+        ..add<oxygen.ValueComponent<num>, num>(i)
         ..add<oxygen.ValueComponent<bool>, bool>(true));
   }
 
@@ -352,10 +352,8 @@ class _GetComponent$Oxygen$Benchmark extends BenchmarkBase {
       final stringValue = e.get<oxygen.ValueComponent<String>>()!.value!;
       final numValue = e.get<oxygen.ValueComponent<num>>()!.value!;
       final boolValue = e.get<oxygen.ValueComponent<bool>>()!.value!;
-      if (intValue != 0 ||
-          stringValue != 'string' ||
-          numValue != 1 ||
-          boolValue != true) throw StateError('Incorrect component value');
+      if (intValue != numValue || stringValue != 'string' || boolValue != true)
+        throw StateError('Incorrect component value');
     }
   }
 }
@@ -364,7 +362,7 @@ class _GetComponent$Mess$Benchmark extends BenchmarkBase {
   _GetComponent$Mess$Benchmark() : super('GetComponent#Mess');
 
   late mess.Mess world;
-  final queue = Queue<int>();
+  final queue = Queue<mess.Entity>();
 
   @override
   void setup() {
@@ -378,25 +376,23 @@ class _GetComponent$Mess$Benchmark extends BenchmarkBase {
     for (var i = 0; i < 100; i++) {
       final entity = world.createEntity();
       world
-        ..upsertComponent<int>(entity, 0)
+        ..upsertComponent<int>(entity, i)
         ..upsertComponent<String>(entity, 'string')
-        ..upsertComponent<num>(entity, 1)
+        ..upsertComponent<num>(entity, i)
         ..upsertComponent<bool>(entity, true);
-      queue.add(entity);
+      queue.add(mess.Entity(id: entity, manager: world));
     }
   }
 
   @override
   void run() {
     for (final e in queue) {
-      final intValue = world.getComponent<int>(e);
-      final stringValue = world.getComponent<String>(e);
-      final numValue = world.getComponent<num>(e);
-      final boolValue = world.getComponent<bool>(e);
-      if (intValue != 0 ||
-          stringValue != 'string' ||
-          numValue != 1 ||
-          boolValue != true) throw StateError('Incorrect component value');
+      final intValue = e.get<int>();
+      final stringValue = e.get<String>();
+      final numValue = e.get<num>();
+      final boolValue = e.get<bool>();
+      if (intValue != numValue || stringValue != 'string' || boolValue != true)
+        throw StateError('Incorrect component value');
     }
   }
 
