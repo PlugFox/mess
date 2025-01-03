@@ -11,11 +11,11 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   /// Create a new pool for components of a specific type.
   _MessPool$MapImpl() : _components = HashMap<int, C>();
 
-  final Map<int, C> _components;
-
   /// Type of components in this pool.
   @override
   Type get type => C;
+
+  final Map<int, C> _components;
 
   // TODO(plugfox): Create a new implementation with dense and sparse arrays
   // instead of HashMap for better performance and memory usage.
@@ -49,6 +49,50 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   // }
 }
 
+class _MessPool$ListImpl<C extends Object> implements IMessPool<C> {
+  /// Create a new pool for components of a specific type.
+  _MessPool$ListImpl()
+      : _components = List<C?>.filled(512, null, growable: false);
+
+  /// Type of components in this pool.
+  @override
+  Type get type => C;
+
+  List<C?> _components;
+
+  @override
+  bool contains(int entity) {
+    if (entity < 0 || entity >= _components.length) return false;
+    return _components[entity] != null;
+  }
+
+  @override
+  C? remove(int entity) {
+    if (entity < 0 || entity >= _components.length) return null;
+    final component = _components[entity];
+    _components[entity] = null;
+    return component;
+  }
+
+  @override
+  C operator [](int entity) {
+    if (entity < 0 || entity >= _components.length)
+      throw Exception('Component not found');
+    return _components[entity] ?? (throw Exception('Component not found'));
+  }
+
+  @override
+  void operator []=(int entity, C component) {
+    if (entity >= _components.length) {
+      final newSize = entity << 1;
+      _components = List<C?>.filled(newSize, null, growable: false)
+        ..setAll(0, _components);
+      //_components.length = newSize;
+    }
+    _components[entity] = component;
+  }
+}
+
 class _MessPool$Disposed implements IMessPool<Object> {
   const _MessPool$Disposed();
 
@@ -75,7 +119,7 @@ class _MessPool$Disposed implements IMessPool<Object> {
 /// A registry helper to create pools for a [Mess] instance.
 final class PoolRegistry {
   /// Create a new [PoolRegistry] instance with a default HashMap pool factory.
-  factory PoolRegistry() => PoolRegistry._(PoolRegistry.hashMap());
+  factory PoolRegistry() => PoolRegistry._(PoolRegistry.list());
 
   /// Create a new [PoolRegistry] instance with a specified custom pool factory.
   factory PoolRegistry.custom(IMessPool<C> Function<C extends Object>() fn) =>
@@ -86,9 +130,14 @@ final class PoolRegistry {
       : _factories = <Type, IMessPool Function()>{};
 
   /// Get a HashMap pool factory for a specific component type.
-  static IMessPool<C> Function<C extends Object>() hashMap() =>
+  static IMessPool<C> Function<C extends Object>() map() =>
       // ignore: unnecessary_lambdas
       <T extends Object>() => _MessPool$MapImpl<T>();
+
+  /// Get a HashMap pool factory for a specific component type.
+  static IMessPool<C> Function<C extends Object>() list() =>
+      // ignore: unnecessary_lambdas
+      <T extends Object>() => _MessPool$ListImpl<T>();
 
   /// Default pool factory for HashMap pools and method [register]
   final IMessPool<C> Function<C extends Object>() _factoryByDefault;
