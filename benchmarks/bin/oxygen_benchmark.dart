@@ -6,24 +6,29 @@ import 'package:oxygen/oxygen.dart' as oxygen;
 
 /*
 Create World:
-Benchmark CreateWorld#Oxygen: 9.08 us
-Benchmark CreateWorld#Mess: 36.62 us
-Ratio: 4.03
+Benchmark CreateWorld#Oxygen: 8.95 us
+Benchmark CreateWorld#Mess: 36.44 us
+Ratio: 4.07
 
 Create 1000 entities:
-Benchmark CreateEntity#Mess: 1145.11 us
-Benchmark CreateEntity#Oxygen: 5410.84 us
-Ratio: 4.73
+Benchmark CreateEntity#Mess: 1139.01 us
+Benchmark CreateEntity#Oxygen: 5339.81 us
+Ratio: 4.69
 
 Create and remove 100 entities:
-Benchmark RemoveEntity#Mess: 95.69 us
-Benchmark RemoveEntity#Oxygen: 909.58 us
-Ratio: 9.51
+Benchmark RemoveEntity#Mess: 95.23 us
+Benchmark RemoveEntity#Oxygen: 913.37 us
+Ratio: 9.59
 
-Get components for 100 entities:
-Benchmark GetComponent#Mess: 33.65 us
-Benchmark GetComponent#Oxygen: 39.26 us
-Ratio: 1.17
+Get 1 component for 100 entities:
+Benchmark GetComponent#Mess: 7.62 us
+Benchmark GetComponent#Oxygen: 8.71 us
+Ratio: 1.14
+
+Get 4 components for 100 entities:
+Benchmark Get4Components#Mess: 31.49 us
+Benchmark Get4Components#Oxygen: 34.72 us
+Ratio: 1.10
 */
 
 // $ dart run benchmarks/bin/oxygen_benchmark.dart
@@ -74,10 +79,16 @@ void main() {
     _RemoveEntity$Mess$Benchmark(),
   ]);
 
-  dvd('Get components for 100 entities:');
+  dvd('Get 1 component for 100 entities:');
   measure(<BenchmarkBase>[
     _GetComponent$Oxygen$Benchmark(),
     _GetComponent$Mess$Benchmark(),
+  ]);
+
+  dvd('Get 4 components for 100 entities:');
+  measure(<BenchmarkBase>[
+    _Get4Components$Oxygen$Benchmark(),
+    _Get4Components$Mess$Benchmark(),
   ]);
 
   print(buffer.toString()); // ignore: avoid_print
@@ -330,6 +341,63 @@ class _GetComponent$Oxygen$Benchmark extends BenchmarkBase {
     super.setup();
     world = oxygen.World()
       ..registerComponent<oxygen.ValueComponent<int>, int>(
+          oxygen.ValueComponent<int>.new);
+    for (var i = 0; i < 100; i++)
+      queue.add(world.createEntity()..add<oxygen.ValueComponent<int>, int>(i));
+  }
+
+  @override
+  void run() {
+    for (final e in queue) {
+      final intValue = e.get<oxygen.ValueComponent<int>>()!.value!;
+      if (intValue < 0) throw StateError('Incorrect component value');
+    }
+  }
+}
+
+class _GetComponent$Mess$Benchmark extends BenchmarkBase {
+  _GetComponent$Mess$Benchmark() : super('GetComponent#Mess');
+
+  late mess.Mess world;
+  final queue = Queue<mess.Entity>();
+
+  @override
+  void setup() {
+    super.setup();
+    world = (mess.PoolRegistry()..register<int>()).createMess();
+    for (var i = 0; i < 100; i++) {
+      final entity = world.createEntity();
+      world.upsertComponent<int>(entity, i);
+      queue.add(mess.Entity(id: entity, manager: world));
+    }
+  }
+
+  @override
+  void run() {
+    for (final e in queue) {
+      final intValue = e.get<int>();
+      if (intValue < 0) throw StateError('Incorrect component value');
+    }
+  }
+
+  @override
+  void teardown() {
+    super.teardown();
+    world.dispose();
+  }
+}
+
+class _Get4Components$Oxygen$Benchmark extends BenchmarkBase {
+  _Get4Components$Oxygen$Benchmark() : super('Get4Components#Oxygen');
+
+  late oxygen.World world;
+  final queue = Queue<oxygen.Entity>();
+
+  @override
+  void setup() {
+    super.setup();
+    world = oxygen.World()
+      ..registerComponent<oxygen.ValueComponent<int>, int>(
           oxygen.ValueComponent<int>.new)
       ..registerComponent<oxygen.ValueComponent<String>, String>(
           oxygen.ValueComponent<String>.new)
@@ -358,8 +426,8 @@ class _GetComponent$Oxygen$Benchmark extends BenchmarkBase {
   }
 }
 
-class _GetComponent$Mess$Benchmark extends BenchmarkBase {
-  _GetComponent$Mess$Benchmark() : super('GetComponent#Mess');
+class _Get4Components$Mess$Benchmark extends BenchmarkBase {
+  _Get4Components$Mess$Benchmark() : super('Get4Components#Mess');
 
   late mess.Mess world;
   final queue = Queue<mess.Entity>();
