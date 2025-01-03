@@ -34,11 +34,11 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   C? remove(int entity) => _components.remove(entity);
 
   @override
-  C operator [](int entity) =>
+  C get(int entity) =>
       _components[entity] ?? (throw ArgumentError('Component not found'));
 
   @override
-  void operator []=(int entity, C component) => _components[entity] = component;
+  void upsert(int entity, C component) => _components[entity] = component;
 
   // Optionally, implement the copy method if needed in the future.
   // void copy(int from, int to) {
@@ -76,13 +76,13 @@ class _MessPool$ListImpl<C extends Object> implements IMessPool<C> {
 
   @override
   @pragma('vm:prefer-inline')
-  C operator [](int entity) {
+  C get(int entity) {
     assert(entity >= 0 && entity < _components.length, 'Entity out of range');
     return _components[entity] ?? (throw RangeError('Component not found'));
   }
 
   @override
-  void operator []=(int entity, C component) {
+  void upsert(int entity, C component) {
     if (entity >= _components.length) {
       final newSize = entity << 1;
       _components = List<C?>.filled(newSize, null, growable: false)
@@ -108,10 +108,10 @@ class _MessPool$Disposed implements IMessPool<Object> {
   void remove(int entity) => _throwDisposedError();
 
   @override
-  Object operator [](int entity) => _throwDisposedError();
+  Object get(int entity) => _throwDisposedError();
 
   @override
-  void operator []=(int entity, Object component) => _throwDisposedError();
+  void upsert(int entity, Object component) => _throwDisposedError();
 }
 
 // --- Pools registry / helper --- //
@@ -424,7 +424,7 @@ class Mess implements IMess {
     }
 
     // Add component to pool
-    pool[id] = component;
+    pool.upsert(id, component);
   }
 
   /// Remove a component from an entity in the current manager (world) by type.
@@ -468,7 +468,7 @@ class Mess implements IMess {
 
     final pool = _poolsMap[C];
     if (pool == null) throw Exception('Component $C not registered');
-    return pool[id] as C;
+    return pool.get(id) as C;
   }
 
   @override
@@ -491,7 +491,7 @@ class Mess implements IMess {
     final offset = _getEntityOffset(id);
     return List<Object>.generate(
       _entities[offset] - 1,
-      (i) => _poolsList[_entities[offset + 1 + i]][id],
+      (i) => _poolsList[_entities[offset + 1 + i]].get(id),
       growable: false,
     );
   }

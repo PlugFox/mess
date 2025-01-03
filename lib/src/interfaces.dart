@@ -16,10 +16,10 @@ abstract interface class IMessPool<C extends Object> {
 
   /// Get component by entity.
   /// Throws [Exception] if entity does not exist.
-  C operator [](int entity);
+  C get(int entity);
 
   /// Set component for entity.
-  void operator []=(int entity, C component);
+  void upsert(int entity, C component);
 
   // void copy(int from, int to);
 }

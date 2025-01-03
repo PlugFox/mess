@@ -137,8 +137,8 @@ class _MessPool$Fake<T extends Object> implements IMessPool<T> {
   T? remove(int id) => _throwFakeError();
 
   @override
-  T operator [](int id) => _throwFakeError();
+  T get(int id) => _throwFakeError();
 
   @override
-  void operator []=(int id, T component) => _throwFakeError();
+  void upsert(int id, T component) => _throwFakeError();
 }
