@@ -5,6 +5,11 @@ import 'dart:typed_data';
 import 'interfaces.dart';
 import 'mask.dart';
 
+// TODO(plugfox): Попробывать заменить Map<Type, IMessPool<Object>> на
+// HashMap<Type, List<Object>> для ускорения доступа к пулам.
+// List должен быть фиксированным размером.
+// Mike Matiunin <plugfox@gmail.com>, 03 January 2025
+
 // --- Pools implementations --- //
 
 class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
