@@ -35,7 +35,7 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
 
   @override
   C operator [](int entity) =>
-      _components[entity] ?? (throw Exception('Component not found'));
+      _components[entity] ?? (throw ArgumentError('Component not found'));
 
   @override
   void operator []=(int entity, C component) => _components[entity] = component;
@@ -75,10 +75,10 @@ class _MessPool$ListImpl<C extends Object> implements IMessPool<C> {
   }
 
   @override
+  @pragma('vm:prefer-inline')
   C operator [](int entity) {
-    if (entity < 0 || entity >= _components.length)
-      throw Exception('Component not found');
-    return _components[entity] ?? (throw Exception('Component not found'));
+    assert(entity >= 0 && entity < _components.length, 'Entity out of range');
+    return _components[entity] ?? (throw RangeError('Component not found'));
   }
 
   @override
@@ -280,6 +280,7 @@ class Mess implements IMess {
   @override
   int get entitySize => _entitySize;
 
+  @pragma('vm:prefer-inline')
   int _getEntityOffset(int id) => id * _entitySize;
 
   @override
