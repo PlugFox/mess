@@ -54,6 +54,10 @@ class _MessPool$MapImpl<C extends Object> implements IMessPool<C> {
   // }
 }
 
+@Deprecated('Из за использования списка для каждого пула, '
+    'теоретически мы можем чрезмерно расходовать RAM. '
+    'Ведь если у элемента id 1000000 и всего 1 компонент - '
+    'мы выделим огромное количество памяти под этот единственный компонент.')
 class _MessPool$ListImpl<C extends Object> implements IMessPool<C> {
   /// Create a new pool for components of a specific type.
   _MessPool$ListImpl()
@@ -124,7 +128,7 @@ class _MessPool$Disposed implements IMessPool<Object> {
 /// A registry helper to create pools for a [Mess] instance.
 final class PoolRegistry {
   /// Create a new [PoolRegistry] instance with a default HashMap pool factory.
-  factory PoolRegistry() => PoolRegistry._(PoolRegistry.list());
+  factory PoolRegistry() => PoolRegistry._(PoolRegistry.map());
 
   /// Create a new [PoolRegistry] instance with a specified custom pool factory.
   factory PoolRegistry.custom(IMessPool<C> Function<C extends Object>() fn) =>
@@ -140,6 +144,7 @@ final class PoolRegistry {
       <T extends Object>() => _MessPool$MapImpl<T>();
 
   /// Get a HashMap pool factory for a specific component type.
+  @Deprecated('Потенциально опасно для RAM, лучше использовать хэш таблицу.')
   static IMessPool<C> Function<C extends Object>() list() =>
       // ignore: unnecessary_lambdas
       <T extends Object>() => _MessPool$ListImpl<T>();
